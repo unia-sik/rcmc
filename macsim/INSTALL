@@ -1,0 +1,11 @@
+Build MacSim
+============
+
+    mkdir build
+    cd build
+    cmake ..
+    make
+
+Set the environment variable RCMC to the root dir of the rcmc repository
+
+Required Debian packages: cmake
