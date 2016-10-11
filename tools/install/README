@@ -1,0 +1,15 @@
+More information can be found in the headers of the scripts!
+
+build_rv64ixfgmp.sh
+-------------------
+Build a RISC-V gcc without multiplication and floating point support, but an
+assembler that supports the Fine Grained Message Passing instructions. 
+Target dir: rcmc/tools/rv64ixfgmp/
+
+fetch_and_build.sh
+------------------
+Install modified RISC-V toolchain
+
+modify_fgmp.sh
+--------------
+Modify an existing source code repository of riscv-tools to support FGMP
