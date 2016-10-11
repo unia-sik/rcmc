@@ -1,0 +1,538 @@
+--FILE WAS USED TO TEST ALL CASES OF A SINGLE NODE
+--DUE TO REFACTORING THE NODE MODULE, IT HAS TO BE CHANGED TO THE RECORD TYPES
+--I SOMEONE WANTS TO USE IT
+
+--LIBRARY IEEE;
+--USE IEEE.STD_LOGIC_1164.ALL;
+--USE WORK.CONSTANTS.ALL;
+--USE WORK.LIBNODE.ALL;
+--
+--
+--ENTITY NodeTest IS
+--	PORT (SW			: IN STD_LOGIC_VECTOR(17 DOWNTO 0);
+--			CLOCK_50	: IN STD_LOGIC;
+--			LEDR		: OUT STD_LOGIC_VECTOR(17 DOWNTO 0));
+--END;
+--
+--ARCHITECTURE STRUCTURE OF NodeTest IS
+--
+--component NODE
+--    PORT (	Clk 					: IN std_logic;
+--				Rst 					: IN std_logic;				
+--				NorthOut				: OUT P_PORT_VERTICAL;
+--				SouthIn				: IN  P_PORT_VERTICAL;
+--				EastOut	   		: OUT P_PORT_HORIZONTAL;
+--				WestIn				: IN  P_PORT_HORIZONTAL;
+--				LocalOut				: OUT P_PORT_BUFFER;
+--				LocalIn				: IN  P_PORT_BUFFER;
+--				LocalStallSignal 	: OUT std_logic;			
+--				BufferOverflow 	: OUT std_logic;				
+--				CoreAddress			: IN  Address					
+--				);
+--END component;
+--
+--
+--
+--
+--
+--
+--SIGNAL 	NORTH_OUT :P_PORT_VERTICAL;
+--SIGNAL	SOUTH_IN :P_PORT_VERTICAL;
+--SIGNAL	EAST_OUT :P_PORT_HORIZONTAL;
+--SIGNAL	WEST_IN  :P_PORT_HORIZONTAL;
+--SIGNAL	LOCAL_OUT :P_PORT_BUFFER;
+--SIGNAL	LOCAL_IN  :P_PORT_BUFFER;
+--SIGNAL	LOCAL_STALL_SIGNAL :std_logic;
+--SIGNAL	BUFFER_OVERFLOW    :std_logic;
+--SIGNAL	CORE_ADDRESS       :Address;
+--SIGNAL   testcase: natural;
+--SIGNAL   clockwait: natural;
+--begin
+--	NODE000000 : NODE port map( 
+--				CLOCK_50,
+--				SW(17),
+--				NORTH_OUT,
+--				SOUTH_IN,
+--				EAST_OUT,
+--				WEST_IN,
+--				LOCAL_OUT,
+--				LOCAL_IN,
+--				LOCAL_STALL_SIGNAL,
+--				BUFFER_OVERFLOW,
+--				CORE_ADDRESS);
+--	
+--
+--	--1 Local
+--		--1.1 Local to East		++
+--		--1.2 Local to North		++
+--	
+--	--2 West
+--		--2.1 West to East		++
+--		--2.2 West to North		++
+--		--2.3 West to Local		++
+--	
+--	--3 South		
+--		--3.1 South to North    ++
+--		--3.2 South to Local		++
+--	
+--	--4 Local + West
+--		--4.1 Local to East  + West to East		++
+--		--4.2 Local to East  + West to North	++
+--		--4.3 Local to East  + West to Local	++
+--		--4.4 Local to North + West to East		++
+--		--4.5 Local to North + West to North	++
+--		--4.6 Local to North + West to Local	++
+--	
+--	--5 Local + South
+--		--5.1 Local to East  + South to North	++
+--		--5.2 Local to East  + South to Local	++
+--		--5.3 Local to North + South to North	++
+--		--5.4 Local to North + South to Local	++
+--	
+--	--6 West + South
+--		--6.1 West to East  + South to North	++
+--		--6.2 West to East  + South to Local	++
+--		--6.3 West to North + South to North	++
+--		--6.4 West to North + South to Local	++
+--		--6.5 West to Local + South to North	++
+--		--6.6 West to Local + South to Local	++
+--		
+--	
+--	--7 West + South + Local
+--		--7.1  Local to East  + West to East  + South to North	++	
+--		--7.2  Local to East  + West to East  + South to Local	++
+--		--7.3  Local to East  + West to North + South to North	++
+--		--7.4  Local to East  + West to North + South to Local	++
+--		--7.5  Local to East  + West to Local + South to North	++
+--		--7.6  Local to East  + West to Local + South to Local	++	
+--		--7.7  Local to North + West to East  + South to North	++
+--		--7.8  Local to North + West to East  + South to Local	++
+--		--7.9  Local to North + West to North + South to North	++
+--		--7.10 Local to North + West to North + South to Local	++
+--		--7.11 Local to North + West to Local + South to North	++
+--		--7.12 Local to North + West to Local + South to Local	++
+--
+--		
+--		
+--	
+--	--Da Modelsim mit records nur sch*isse baut findet der test so statt.....
+--
+--
+--	process (SW(17),CLOCK_50)
+--	
+--	
+--
+--
+--	begin
+--	
+--		IF SW(17) = '0' THEN
+--			testcase <= 0;
+--			clockwait <= 0;
+--			CORE_ADDRESS.X <= "0";
+--			CORE_ADDRESS.Y <= "0";
+--			LOCAL_IN.Data <= x"0000000000000000";
+--			SOUTH_IN.Data <= x"0000000000000000";
+--			WEST_IN.Data <= x"0000000000000000";
+--			WEST_IN.Marked <= '0';
+--		ELSIF rising_edge(CLOCK_50) THEN
+--		
+--
+--					LOCAL_IN.Data <= x"10CA100000000000";
+--					SOUTH_IN.Data <= x"5007000000000000";
+--					WEST_IN.Data  <= x"e570000000000000";
+--					
+--					
+--					LOCAL_IN.Address <= "00" & "00";
+--					LOCAL_IN.DataAvailable <= '0';				
+--					SOUTH_IN.Address <= "00" & "00";
+--					SOUTH_IN.DataAvailable <= '0';		
+--					WEST_IN.Address <= "00" & "00";
+--					WEST_IN.DataAvailable <= '0';
+--		
+--		
+--		
+----		
+------Bausteine:
+----
+----					--Local to East
+----					LOCAL_IN.Address <= "10" & "00";
+----					LOCAL_IN.DataAvailable <= '1';
+----					
+----					--Local to North
+----					LOCAL_IN.Address <= "01" & "00";
+----					LOCAL_IN.DataAvailable <= '1';
+----					
+----					
+----					--South to East
+----					SOUTH_IN.Address <= "10" & "00";
+----					SOUTH_IN.DataAvailable <= '0';
+----					
+----					--South to North
+----					SOUTH_IN.Address <= "01" & "00";
+----					SOUTH_IN.DataAvailable <= '0';
+----					
+----					--South to Local
+----					SOUTH_IN.Address <= "00" & "00";
+----					SOUTH_IN.DataAvailable <= '0';
+----					
+----					
+----					--West to East
+----					WEST_IN.Address <= "10" & "00";
+----					WEST_IN.DataAvailable <= '0';
+----					
+----					--West to North
+----					WEST_IN.Address <= "01" & "00";
+----					WEST_IN.DataAvailable <= '0';
+----					
+----					--West to Local
+----					WEST_IN.Address <= "00" & "00";
+----					WEST_IN.DataAvailable <= '0';
+----			
+--		
+--		
+--		IF clockwait = 0 THEN
+--			
+--			
+--			CASE testcase IS
+--				--1.1 Local to East
+--				WHEN 0 => 		
+--					LOCAL_IN.Address <= "10" & "00";
+--					LOCAL_IN.DataAvailable <= '1';				
+--					
+--				--1.2 Local to North
+--				WHEN 1 => 	
+--					LOCAL_IN.Address <= "01" & "00";
+--					LOCAL_IN.DataAvailable <= '1';					
+--					
+--				--2.1 West to East
+--				WHEN 2 => 					
+--					WEST_IN.Address <= "10" & "00";
+--					WEST_IN.DataAvailable <= '1';
+--													
+--				--2.2 West to North
+--				WHEN 3 => 
+--				
+--					WEST_IN.Address <= "01" & "00";
+--					WEST_IN.DataAvailable <= '1';
+--		
+--				--2.3 West to Local
+--				WHEN 4 => 	
+--					
+--					WEST_IN.Address <= "00" & "00";
+--					WEST_IN.DataAvailable <= '1';					
+--										
+--				--3.1 South to North
+--				WHEN 5 => 					
+--					SOUTH_IN.Address <= "01" & "00";
+--					SOUTH_IN.DataAvailable <= '1';
+--					
+--				--3.2 South to Local
+--				WHEN 6 => 						
+--					SOUTH_IN.Address <= "00" & "00";
+--					SOUTH_IN.DataAvailable <= '1';
+-- 	
+--			
+--				--4.1 Local to East  + West to East	
+--				WHEN 7 => 				
+--					LOCAL_IN.Address <= "10" & "00";
+--					LOCAL_IN.DataAvailable <= '1';				
+--					WEST_IN.Address <= "10" & "00";
+--					WEST_IN.DataAvailable <= '1'; 
+--		
+--				--4.2 Local to East  + West to North
+--				WHEN 8 => 					
+--					LOCAL_IN.Address <= "10" & "00";
+--					LOCAL_IN.DataAvailable <= '1';				
+--					WEST_IN.Address <= "01" & "00";
+--					WEST_IN.DataAvailable <= '1';
+-- 	
+--			
+--				--4.3 Local to East  + West to Local
+--				WHEN 9 => 	
+--					--Local to East
+--					LOCAL_IN.Address <= "10" & "00";
+--					LOCAL_IN.DataAvailable <= '1';				
+--					WEST_IN.Address <= "00" & "00";
+--					WEST_IN.DataAvailable <= '1';
+--					
+-- 
+--		
+--				--4.4 Local to North + West to East
+--				WHEN 10 => 					
+--					LOCAL_IN.Address <= "01" & "00";
+--					LOCAL_IN.DataAvailable <= '1';				
+--					WEST_IN.Address <= "10" & "00";
+--					WEST_IN.DataAvailable <= '1';
+-- 		
+--				
+--				--4.5 Local to North + West to North
+--				WHEN 11 => 						
+--					LOCAL_IN.Address <= "01" & "00";
+--					LOCAL_IN.DataAvailable <= '1';	
+--					WEST_IN.Address <= "01" & "00";
+--					WEST_IN.DataAvailable <= '1';
+-- 	
+--			
+--				--4.6 Local to North + West to Local
+--				WHEN 12 => 		
+--					LOCAL_IN.Address <= "01" & "00";
+--					LOCAL_IN.DataAvailable <= '1';				
+--					WEST_IN.Address <= "00" & "00";
+--					WEST_IN.DataAvailable <= '1';
+-- 	
+--			
+--				--5.1 Local to East  + South to North
+--				WHEN 13 => 	
+--					--Local to East
+--					LOCAL_IN.Address <= "10" & "00";
+--					LOCAL_IN.DataAvailable <= '1';
+--					SOUTH_IN.Address <= "01" & "00";
+--					SOUTH_IN.DataAvailable <= '1';
+--					
+--			
+--				--5.2 Local to East  + South to Local
+--				WHEN 14 => 	
+--					LOCAL_IN.Address <= "10" & "00";
+--					LOCAL_IN.DataAvailable <= '1';
+--					SOUTH_IN.Address <= "00" & "00";
+--					SOUTH_IN.DataAvailable <= '1';					
+-- 		
+--				
+--				--5.3 Local to North + South to North
+--				WHEN 15 => 						
+--					LOCAL_IN.Address <= "01" & "00";
+--					LOCAL_IN.DataAvailable <= '1';
+--					SOUTH_IN.Address <= "01" & "00";
+--					SOUTH_IN.DataAvailable <= '1';
+--				
+--			
+--				--5.4 Local to North + South to Local
+--				WHEN 16 => 	
+--					LOCAL_IN.Address <= "01" & "00";
+--					LOCAL_IN.DataAvailable <= '1';
+--					SOUTH_IN.Address <= "00" & "00";
+--					SOUTH_IN.DataAvailable <= '1';
+-- 	
+--			
+--				--6.1 West to East  + South to North	
+--				WHEN 17 => 	
+--					SOUTH_IN.Address <= "01" & "00";
+--					SOUTH_IN.DataAvailable <= '1';					
+--					WEST_IN.Address <= "10" & "00";
+--					WEST_IN.DataAvailable <= '1';
+--				
+--				--6.2 West to East  + South to Local			
+--				WHEN 18 => 						
+--					SOUTH_IN.Address <= "00" & "00";
+--					SOUTH_IN.DataAvailable <= '1';
+--					WEST_IN.Address <= "10" & "00";
+--					WEST_IN.DataAvailable <= '1';	
+--					
+--					
+--				--6.3 West to North + South to North			
+--				WHEN 19 => 					
+--					SOUTH_IN.Address <= "01" & "00";
+--					SOUTH_IN.DataAvailable <= '1';					
+--					WEST_IN.Address <= "01" & "00";
+--					WEST_IN.DataAvailable <= '1';				
+-- 	
+--			
+--				--6.4 West to North + South to Local	
+--				WHEN 20 => 	
+--				
+--					SOUTH_IN.Address <= "00" & "00";
+--					SOUTH_IN.DataAvailable <= '1';				
+--					WEST_IN.Address <= "01" & "00";
+--					WEST_IN.DataAvailable <= '1';					
+--				
+--				--6.5 West to Local + South to North
+--				WHEN 21 =>					
+--					
+--					SOUTH_IN.Address <= "01" & "00";
+--					SOUTH_IN.DataAvailable <= '1';					
+--					WEST_IN.Address <= "00" & "00";
+--					WEST_IN.DataAvailable <= '1';	
+-- 
+--		
+--				--6.6 West to Local + South to Local			
+--				WHEN 22 => 					
+--					SOUTH_IN.Address <= "00" & "00";
+--					SOUTH_IN.DataAvailable <= '1';				
+--					WEST_IN.Address <= "00" & "00";
+--					WEST_IN.DataAvailable <= '1';
+--		
+--				--7.1  Local to East  + West to East  + South to North
+--				WHEN 23 => 					
+--					LOCAL_IN.Address <= "10" & "00";
+--					LOCAL_IN.DataAvailable <= '1';
+--					SOUTH_IN.Address <= "01" & "00";
+--					SOUTH_IN.DataAvailable <= '1';
+--					WEST_IN.Address <= "10" & "00";
+--					WEST_IN.DataAvailable <= '1';
+--			
+--				--7.2  Local to East  + West to East  + South to Local
+--				WHEN 24 => 	
+--					--Local to East
+--					LOCAL_IN.Address <= "10" & "00";
+--					LOCAL_IN.DataAvailable <= '1';
+--					SOUTH_IN.Address <= "00" & "00";
+--					SOUTH_IN.DataAvailable <= '1';
+--					WEST_IN.Address <= "10" & "00";
+--					WEST_IN.DataAvailable <= '1';
+--			
+--			
+--				--7.3  Local to East  + West to North + South to North
+--				WHEN 25 => 	
+--					--Local to East
+--					LOCAL_IN.Address <= "10" & "00";
+--					LOCAL_IN.DataAvailable <= '1';
+--					SOUTH_IN.Address <= "01" & "00";
+--					SOUTH_IN.DataAvailable <= '1';
+--					WEST_IN.Address <= "01" & "00";
+--					WEST_IN.DataAvailable <= '1';
+--					
+--					
+--					
+--					
+-- 	
+--			
+--			
+--				--7.4  Local to East  + West to North + South to Local	
+--				WHEN 26 => 	
+--					LOCAL_IN.Address <= "10" & "00";
+--					LOCAL_IN.DataAvailable <= '1';
+--					SOUTH_IN.Address <= "00" & "00";
+--					SOUTH_IN.DataAvailable <= '1';
+--					WEST_IN.Address <= "01" & "00";
+--					WEST_IN.DataAvailable <= '1';
+--			
+--			
+--			
+--				--7.5  Local to East  + West to Local + South to North
+--				WHEN 27 =>
+--					LOCAL_IN.Address <= "10" & "00";
+--					LOCAL_IN.DataAvailable <= '1';
+--					SOUTH_IN.Address <= "01" & "00";
+--					SOUTH_IN.DataAvailable <= '1';
+--					WEST_IN.Address <= "00" & "00";
+--					WEST_IN.DataAvailable <= '1';
+--			
+--			
+--				--7.6  Local to East  + West to Local + South to Local	
+--				WHEN 28 => 						
+--					LOCAL_IN.Address <= "10" & "00";
+--					LOCAL_IN.DataAvailable <= '1';	
+--					SOUTH_IN.Address <= "00" & "00";
+--					SOUTH_IN.DataAvailable <= '1';
+--					WEST_IN.Address <= "00" & "00";
+--					WEST_IN.DataAvailable <= '1';
+--			
+--				--7.7  Local to North + West to East  + South to North
+--				WHEN 29 => 					
+--					LOCAL_IN.Address <= "01" & "00";
+--					LOCAL_IN.DataAvailable <= '1';
+--					SOUTH_IN.Address <= "01" & "00";
+--					SOUTH_IN.DataAvailable <= '1';
+--					WEST_IN.Address <= "10" & "00";
+--					WEST_IN.DataAvailable <= '1';
+-- 	
+--			
+--			
+--				--7.8  Local to North + West to East  + South to Local
+--				WHEN 30 => 
+--					LOCAL_IN.Address <= "01" & "00";
+--					LOCAL_IN.DataAvailable <= '1';
+--					SOUTH_IN.Address <= "00" & "00";
+--					SOUTH_IN.DataAvailable <= '1';				
+--					WEST_IN.Address <= "10" & "00";
+--					WEST_IN.DataAvailable <= '1';
+--				
+--					
+--			
+--			
+--				--7.9  Local to North + West to North + South to North
+--				WHEN 31 => 						
+--					LOCAL_IN.Address <= "01" & "00";
+--					LOCAL_IN.DataAvailable <= '1';				
+--					SOUTH_IN.Address <= "01" & "00";
+--					SOUTH_IN.DataAvailable <= '1';
+--					WEST_IN.Address <= "01" & "00";
+--					WEST_IN.DataAvailable <= '1';
+--					
+--		
+--		
+--				--7.10 Local to North + West to North + South to Local
+--				WHEN 32 => 	
+--					LOCAL_IN.Address <= "01" & "00";
+--					LOCAL_IN.DataAvailable <= '1';
+--					SOUTH_IN.Address <= "00" & "00";
+--					SOUTH_IN.DataAvailable <= '1';
+--					WEST_IN.Address <= "01" & "00";
+--					WEST_IN.DataAvailable <= '1';
+-- 	
+--			
+--			
+--				--7.11 Local to North + West to Local + South to North
+--				WHEN 33 => 						
+--					LOCAL_IN.Address <= "01" & "00";
+--					LOCAL_IN.DataAvailable <= '1';					
+--					SOUTH_IN.Address <= "01" & "00";
+--					SOUTH_IN.DataAvailable <= '1';					
+--					WEST_IN.Address <= "00" & "00";
+--					WEST_IN.DataAvailable <= '1';
+--					
+--					
+--					
+-- 	
+--			
+--			
+--				--7.12 Local to North + West to Local + South to Local
+--				WHEN 34 => 	
+--					LOCAL_IN.Address <= "01" & "00";
+--					LOCAL_IN.DataAvailable <= '1';
+--					SOUTH_IN.Address <= "00" & "00";
+--					SOUTH_IN.DataAvailable <= '1';
+--					WEST_IN.Address <= "00" & "00";
+--					WEST_IN.DataAvailable <= '1';
+--					
+--					
+--					
+-- 		
+--				
+--				WHEN Others => testcase <= 200;
+--
+--
+--	
+--				
+--	
+--					
+--			
+--			END CASE;
+--			testcase <= testcase + 1;
+--			clockwait <= 5;
+--		
+--		ELSE
+--			clockwait <= clockwait -1;
+--		
+--		END IF;
+--		
+--		
+--		
+--		END IF;
+--   
+--		
+--		
+--
+--	
+--		
+--  
+--	end process;
+--	
+--	
+--	
+--	
+--
+--
+--	
+--end; 
+--

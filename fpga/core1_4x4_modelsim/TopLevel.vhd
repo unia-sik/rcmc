@@ -1,0 +1,155 @@
+--LIBRARY IEEE;
+--USE IEEE.STD_LOGIC_1164.ALL;
+--USE WORK.CONSTANTS.ALL;
+--USE WORK.LIBNODE.ALL;
+--
+--
+--ENTITY TopLevel IS
+--	PORT (SW			: IN STD_LOGIC_VECTOR(17 DOWNTO 0);
+--			CLOCK_50	: IN STD_LOGIC;
+--			LEDR		: OUT STD_LOGIC_VECTOR(17 DOWNTO 0));
+--END;
+--
+--ARCHITECTURE STRUCTURE OF TopLevel IS
+--
+--component NODE
+--    PORT (	Clk 					: IN std_logic;
+--				Rst 					: IN std_logic;				
+--				NorthOut				: OUT P_PORT_VERTICAL;
+--				SouthIn				: IN  P_PORT_VERTICAL;
+--				EastOut	   		: OUT P_PORT_HORIZONTAL;
+--				WestIn				: IN  P_PORT_HORIZONTAL;
+--				LocalOut				: OUT P_PORT_BUFFER;
+--				LocalIn				: IN  P_PORT_BUFFER;
+--				LocalStallSignal 	: OUT std_logic;			
+--				BufferOverflow 	: OUT std_logic;				
+--				CoreAddress			: IN  Address					
+--				);
+--END component;
+--
+---------------------------------------------------
+----SIGNALS for NODE 00
+--
+--SIGNAL N_00EAST_OUT			:P_PORT_HORIZONTAL;
+--SIGNAL N_00NORTH_OUT			:P_PORT_VERTICAL;
+--SIGNAL N_00LOCAL_OUT			:P_PORT_BUFFER;
+--SIGNAL N_00LOCAL_IN			:P_PORT_BUFFER;
+--SIGNAL N_00LOCAL_STALL_SIGNAL		:std_logic;
+--SIGNAL N_00BUFFER_OVERFLOW		:std_logic;
+--SIGNAL N_00CORE_ADDRESS			:Address;
+--
+---------------------------------------------------
+----SIGNALS for NODE 01
+--
+--SIGNAL N_01EAST_OUT			:P_PORT_HORIZONTAL;
+--SIGNAL N_01NORTH_OUT			:P_PORT_VERTICAL;
+--SIGNAL N_01LOCAL_OUT			:P_PORT_LOCAL;
+--SIGNAL N_01LOCAL_IN			:P_PORT_LOCAL;
+--SIGNAL N_01LOCAL_STALL_SIGNAL		:std_logic;
+--SIGNAL N_01BUFFER_OVERFLOW		:std_logic;
+--SIGNAL N_01CORE_ADDRESS			:Address;
+--
+---------------------------------------------------
+----SIGNALS for NODE 10
+--
+--SIGNAL N_10EAST_OUT			:P_PORT_HORIZONTAL;
+--SIGNAL N_10NORTH_OUT			:P_PORT_VERTICAL;
+--SIGNAL N_10LOCAL_OUT			:P_PORT_LOCAL;
+--SIGNAL N_10LOCAL_IN			:P_PORT_LOCAL;
+--SIGNAL N_10LOCAL_STALL_SIGNAL		:std_logic;
+--SIGNAL N_10BUFFER_OVERFLOW		:std_logic;
+--SIGNAL N_10CORE_ADDRESS			:Address;
+--
+---------------------------------------------------
+----SIGNALS for NODE 11
+--
+--SIGNAL N_11EAST_OUT			:P_PORT_HORIZONTAL;
+--SIGNAL N_11NORTH_OUT			:P_PORT_VERTICAL;
+--SIGNAL N_11LOCAL_OUT			:P_PORT_LOCAL;
+--SIGNAL N_11LOCAL_IN			:P_PORT_LOCAL;
+--SIGNAL N_11LOCAL_STALL_SIGNAL		:std_logic;
+--SIGNAL N_11BUFFER_OVERFLOW		:std_logic;
+--SIGNAL N_11CORE_ADDRESS			:Address;
+--
+--
+--
+--
+--begin
+--	NODE00 : NODE port map( 
+--				CLOCK_50,
+--				SW(17),
+--				N_00NORTH_OUT,
+--				N_01NORTH_OUT,
+--				N_00EAST_OUT,
+--				N_10EAST_OUT,
+--				N_00LOCAL_OUT,
+--				N_00LOCAL_IN,
+--				N_00LOCAL_STALL_SIGNAL,
+--				N_00BUFFER_OVERFLOW,
+--				N_00CORE_ADDRESS);
+--	NODE01 : NODE port map( 
+--				CLOCK_50,
+--				SW(17),
+--				N_01NORTH_OUT,
+--				N_00NORTH_OUT,
+--				N_01EAST_OUT,
+--				N_11EAST_OUT,
+--				N_01LOCAL_OUT,
+--				N_01LOCAL_IN,
+--				N_01LOCAL_STALL_SIGNAL,
+--				N_01BUFFER_OVERFLOW,
+--				N_01CORE_ADDRESS);
+--	NODE10 : NODE port map( 
+--				CLOCK_50,
+--				SW(17),
+--				N_10NORTH_OUT,
+--				N_11NORTH_OUT,
+--				N_10EAST_OUT,
+--				N_00EAST_OUT,
+--				N_10LOCAL_OUT,
+--				N_10LOCAL_IN,
+--				N_10LOCAL_STALL_SIGNAL,
+--				N_10BUFFER_OVERFLOW,
+--				N_10CORE_ADDRESS);
+--	NODE11 : NODE port map( 
+--				CLOCK_50,
+--				SW(17),
+--				N_11NORTH_OUT,
+--				N_10NORTH_OUT,
+--				N_11EAST_OUT,
+--				N_01EAST_OUT,
+--				N_11LOCAL_OUT,
+--				N_11LOCAL_IN,
+--				N_11LOCAL_STALL_SIGNAL,
+--				N_11BUFFER_OVERFLOW,
+--				N_11CORE_ADDRESS);
+--
+--
+--
+--
+--	N_00LOCAL_IN.Data <= (others => '0');
+--	N_00LOCAL_IN.Address <= (others => '0');
+--	N_00LOCAL_IN.DataAvailable <= '0';
+--	N_01LOCAL_IN.Data <= (others => '0');
+--	N_01LOCAL_IN.Address <= (others => '0');
+--	N_01LOCAL_IN.DataAvailable <= '0';
+--	N_10LOCAL_IN.Data <= (others => '0');
+--	N_10LOCAL_IN.Address <= (others => '0');
+--	N_10LOCAL_IN.DataAvailable <= '0';
+--	N_11LOCAL_IN.Data <= (others => '0');
+--	N_11LOCAL_IN.Address <= (others => '0');
+--	N_11LOCAL_IN.DataAvailable <= '0';
+--
+--
+--
+--
+--	N_00CORE_ADDRESS.X <= "0";
+--	N_00CORE_ADDRESS.Y <= "0";
+--	N_01CORE_ADDRESS.X <= "0";
+--	N_01CORE_ADDRESS.Y <= "1";
+--	N_10CORE_ADDRESS.X <= "1";
+--	N_10CORE_ADDRESS.Y <= "0";
+--	N_11CORE_ADDRESS.X <= "1";
+--	N_11CORE_ADDRESS.Y <= "1";
+--end; 
+--
