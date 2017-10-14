@@ -424,6 +424,7 @@ instruction_class_t armv6m_execute_iw(node_t *node, uint_fast32_t iw)
 				  }
 				  else {
                                     node->nextpc = value_b & ~1;
+//printf("BX %lx\n", reg_b);
 				  }
 				}
 
@@ -644,6 +645,8 @@ instruction_class_t armv6m_execute_iw(node_t *node, uint_fast32_t iw)
 			    else {
 			      node->nextpc = nextpc & ~1;
 			    }
+//printf("POP PC\n");
+
                         }
 
                         REG_SP = sp;
@@ -872,6 +875,7 @@ instruction_class_t armv6m_execute_iw(node_t *node, uint_fast32_t iw)
                     disp = (disp << 7) >> 7; // sign extension
                     REG_LR = node->pc + 5; // next instruction and thumb bit set
                     node->nextpc = node->pc + 4 + disp;
+//printf("BL %lx\n", node->nextpc);
                     return ARMV6M_LATENCY_CALL;
                 }
 

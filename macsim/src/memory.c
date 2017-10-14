@@ -49,6 +49,7 @@ void memory_init(node_t *node, uint16_min_t mt, uint64_min_t ms)
 // Finish memory, i.e. free allocated memory blocks
 void memory_finish(node_t *node)
 {
+    uint_fast64_t used = 0;
     switch (node->memory_type)
     {
 	case MT_PAGED_32BIT:
@@ -63,12 +64,19 @@ void memory_finish(node_t *node)
 		    for (o1=0; o1<PAGE_SIZE_L1; o1++)
 		    {
 			uint8_t *l0 = l1[o1];
-			if (l0) free(l0);
+			if (l0) {
+			    free(l0);
+			    used += PAGE_SIZE_L0;
+			}
 		    }
 		    free(l1);
 		}
 	    }
 	    free(node->memory.map);
+	    if (used!=0) {
+                info(LOG_LEVEL_INFO, "Memory used by core %x: %llu KiB\n",
+                    node->rank, (used+0x0003ff)>>10);
+            }
 	    break;
 	}
 	case MT_LINEAR:

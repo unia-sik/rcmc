@@ -33,7 +33,8 @@ static inline void print_flit(bool valid, flit_container2_t fc)
 {
     if (!valid) user_printf(" . ");
     else user_printf("%c%c%c", letter[(fc.src%conf_max_rank)&63],
-        letter[(fc.src/conf_max_rank)%63], letter[fc.dest%63]);
+        letter[(fc.src/conf_max_rank)&63], letter[fc.dest&63]);
+// the middle number is a counter for the reassembly
 }
 
 
@@ -70,15 +71,16 @@ static inline void flitfifo_verbose(flitfifo_t *fifo)
     printf("1st=%lu %lu/%lu", fifo->first, fifo->count, fifo->size);
     if (fifo->first+fifo->count > fifo->size) {
         for (i=0; i<fifo->first+fifo->count-fifo->size; i++)
-            printf(" %lx", fifo->buf[i].src);
+            printf(" %lx[%lx]", fifo->buf[i].src, fifo->buf[i].flit);
         for (; i < fifo->first; i++) putchar('.');
         j='a'-i;
         for (; i < fifo->size; i++) 
-            printf(" %lx", fifo->buf[i].src);
+            printf(" %lx[%lx]", fifo->buf[i].src, fifo->buf[i].flit);
     } else {
         for (i=0; i<fifo->first; i++) putchar('.');
         for (j=0; j<fifo->count; j++,i++) //putchar('a'+j);
-            printf(" %lx", fifo->buf[i].src);
+            printf(" %lx[%lx]", fifo->buf[i].src, fifo->buf[i].flit);
+//            printf(" %lx", fifo->buf[i].src);
         for (;i<fifo->size; i++) putchar('.');
     }
 }

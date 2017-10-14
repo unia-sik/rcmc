@@ -1,0 +1,107 @@
+# -------------------------------------------------------------------------- #
+#
+# Copyright (C) 1991-2013 Altera Corporation
+# Your use of Altera Corporation's design tools, logic functions 
+# and other software and tools, and its AMPP partner logic 
+# functions, and any output files from any of the foregoing 
+# (including device programming or simulation files), and any 
+# associated documentation or information are expressly subject 
+# to the terms and conditions of the Altera Program License 
+# Subscription Agreement, Altera MegaCore Function License 
+# Agreement, or other applicable license agreement, including, 
+# without limitation, that your use is for the sole purpose of 
+# programming logic devices manufactured by Altera and sold by 
+# Altera or its authorized distributors.  Please refer to the 
+# applicable agreement for further details.
+#
+# -------------------------------------------------------------------------- #
+#
+# Quartus II 32-bit
+# Version 13.0.1 Build 232 06/12/2013 Service Pack 1 SJ Web Edition
+# Date created = 21:42:40  December 02, 2014
+#
+# -------------------------------------------------------------------------- #
+#
+# Notes:
+#
+# 1) The default values for assignments are stored in the file:
+#		riscv_assignment_defaults.qdf
+#    If this file doesn't exist, see file:
+#		assignment_defaults.qdf
+#
+# 2) Altera recommends that you do not modify this file. This
+#    file is updated automatically by the Quartus II software
+#    and any changes you make may be lost or overwritten.
+#
+# -------------------------------------------------------------------------- #
+
+
+set_global_assignment -name FAMILY "Stratix V"
+set_global_assignment -name DEVICE 5SGXMBBR3H43C3
+set_global_assignment -name TOP_LEVEL_ENTITY NoC
+set_global_assignment -name ORIGINAL_QUARTUS_VERSION "13.0 SP1"
+set_global_assignment -name PROJECT_CREATION_TIME_DATE "21:42:40  DECEMBER 02, 2014"
+set_global_assignment -name LAST_QUARTUS_VERSION 16.0.0
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
+set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
+set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
+set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 1
+set_global_assignment -name EDA_SIMULATION_TOOL "ModelSim-Altera (VHDL)"
+set_global_assignment -name EDA_OUTPUT_DATA_FORMAT VHDL -section_id eda_simulation
+set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
+set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
+set_global_assignment -name USE_CONFIGURATION_DEVICE ON
+set_global_assignment -name RESERVE_ALL_UNUSED_PINS "AS INPUT TRI-STATED"
+set_global_assignment -name CYCLONEII_RESERVE_NCEO_AFTER_CONFIGURATION "USE AS REGULAR IO"
+set_global_assignment -name RESERVE_ASDO_AFTER_CONFIGURATION "USE AS REGULAR IO"
+set_global_assignment -name RESERVE_ALL_UNUSED_PINS_NO_OUTPUT_GND "AS INPUT TRI-STATED"
+set_global_assignment -name STRATIX_DEVICE_IO_STANDARD "3.3-V LVTTL"
+set_global_assignment -name ENABLE_SIGNALTAP ON
+set_global_assignment -name USE_SIGNALTAP_FILE output_files/stp1.stp
+set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
+set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
+set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+set_global_assignment -name POWER_USE_INPUT_FILES ON
+set_global_assignment -name POWER_DEFAULT_INPUT_IO_TOGGLE_RATE "11.4 %"
+set_global_assignment -name POWER_USE_PVA OFF
+set_global_assignment -name EDA_MAP_ILLEGAL_CHARACTERS ON -section_id eda_simulation
+set_global_assignment -name EDA_ENABLE_GLITCH_FILTERING ON -section_id eda_simulation
+set_global_assignment -name EDA_WRITE_NODES_FOR_POWER_ESTIMATION OFF -section_id eda_simulation
+set_global_assignment -name EDA_TEST_BENCH_DESIGN_INSTANCE_NAME NoC -section_id eda_simulation
+set_global_assignment -name POWER_REPORT_POWER_DISSIPATION OFF
+set_global_assignment -name POWER_REPORT_SIGNAL_ACTIVITY OFF
+set_global_assignment -name POWER_INPUT_FILE_NAME xrandom4x4.vcd -section_id xrandom4x4.vcd
+set_instance_assignment -name POWER_READ_INPUT_FILE xrandom4x4.vcd -to NoC
+set_global_assignment -name OPTIMIZE_POWER_DURING_FITTING "EXTRA EFFORT"
+set_global_assignment -name FLOW_ENABLE_POWER_ANALYZER OFF
+
+#set_global_assignment -name NUM_PARALLEL_PROCESSORS 4
+
+set_global_assignment -name POWER_DEFAULT_TOGGLE_RATE "11.4 %"
+set_global_assignment -name OPTIMIZE_POWER_DURING_SYNTHESIS "EXTRA EFFORT"
+set_global_assignment -name VHDL_FILE ../src/Node.vhd
+set_global_assignment -name VHDL_FILE ../src/nocunit.vhd
+set_global_assignment -name VHDL_FILE ../src/LibNode.vhd
+set_global_assignment -name VHDL_FILE constants.vhd
+set_global_assignment -name VHDL_FILE ../src/w_stage.vhd
+set_global_assignment -name VHDL_FILE ../src/NetworkInterfaceSend.vhd
+set_global_assignment -name VHDL_FILE ../src/NetworkInterfaceReceive.vhd
+set_global_assignment -name VHDL_FILE ../src/m_stage.vhd
+set_global_assignment -name VHDL_FILE ../src/libproc.vhd
+set_global_assignment -name VHDL_FILE ../src/libeu.vhd
+set_global_assignment -name VHDL_FILE ../src/f_stage.vhd
+set_global_assignment -name VHDL_FILE ../src/eu.vhd
+set_global_assignment -name VHDL_FILE ../src/e_stage.vhd
+set_global_assignment -name VHDL_FILE ../src/d_stage.vhd
+set_global_assignment -name VHDL_FILE ../src/csrfile.vhd
+set_global_assignment -name VHDL_FILE ../src/cpu_top.vhd
+set_global_assignment -name SOURCE_FILE regfile_ram.cmp
+set_global_assignment -name VHDL_FILE NoC.vhd
+set_global_assignment -name SOURCE_FILE dmem.cmp
+set_global_assignment -name VHDL_FILE dmem.vhd
+set_global_assignment -name SDC_FILE stratix_v.sdc
+set_global_assignment -name VHDL_FILE regfile.vhd
+set_global_assignment -name QIP_FILE regfile_ram.qip
+set_global_assignment -name QIP_FILE dmem.qip
+set_global_assignment -name SIGNALTAP_FILE output_files/stp1.stp
+set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

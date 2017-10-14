@@ -1,0 +1,12 @@
+download_netrace.sh -> traces/
+Download traces for netrace simulation.
+
+run_netrace.sh -> netrace/
+Run netrace patterns on MacSim for all PaterNoster router configurations.
+
+run_patterns.sh -> patterns.csv
+Run traffic patterns on MacSim to determine saturation throughput of all
+PaterNoster router configurations.
+
+run_quartus.sh -> quartus/
+Synthesize all PaterNoster router configurations. (UNTESTED)

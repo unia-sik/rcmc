@@ -158,6 +158,40 @@ static inline void _memw_64l(node_t *node, addr_t addr, uint64_t data)
 #define MA_64be		14
 #define MA_u64be	15
 
+static addr_t memory_access_len[] = {
+    [MA_8]      = 1,
+    [MA_u8]     = 1,
+    [MA_16le]   = 2,
+    [MA_u16le]  = 2,
+    [MA_16be]   = 2,
+    [MA_u16be]  = 2,
+    [MA_32le]   = 4,
+    [MA_u32le]  = 4,
+    [MA_32be]   = 4,
+    [MA_u32be]  = 4,
+    [MA_64le]   = 8,
+    [MA_u64le]  = 8,
+    [MA_64be]   = 8,
+    [MA_u64be]  = 8,
+};
+
+#define MA_8		2
+#define MA_u8		3
+#define MA_16le		4
+#define MA_u16le	5
+#define MA_16be		6
+#define MA_u16be	7
+#define MA_32le		8
+#define MA_u32le	9
+#define MA_32be		10
+#define MA_u32be	11
+#define MA_64le		12
+#define MA_u64le	13
+#define MA_64be		14
+#define MA_u64be	15
+
+
+
 // directly load from memory (no mapping)
 static inline int memory_load_u64_direct(node_t *node, unsigned access_type, 
     addr_t addr, uint64_t *dest)

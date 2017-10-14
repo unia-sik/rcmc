@@ -5,6 +5,11 @@
  * RC/MC project
  *
  * TODO:
+ * - flitslotdelay is used to delay incomming flits by 3 cycles. But the test,
+ *   if the receive buffer is full, must also include the flits that are in this
+ *   delay queue. Currently solved by recv_fifo_full_last_cycle, but this is a
+ *   very ugly solution. Best solution: remove delay also in the VHDL model.
+ *
  * - don't use conf_noc_width
  * - rename XXX_init() to XXX_init_router() and move memory allocation to macsim main
  */
@@ -22,9 +27,9 @@
 
 
 
-#define conf_send_fifo_size     8
-#define conf_recv_fifo_size     (2*conf_max_rank)
-#define conf_corner_fifo_size   8
+//#define conf_send_fifo_size     8
+//#define conf_recv_fifo_size     (2*conf_max_rank)
+//#define conf_corner_fifo_size   8
 
 
 unsigned long stat_stall_east;
@@ -54,13 +59,15 @@ bool pnconfig_send_flit(node_t *node, rank_t dest, flit_t flit)
     fc.src = node->rank;
     fc.dest = dest;
     fc.flit = flit;
+    pnconfig_context_t *ctx = node->noc_context;
 
-    if (((pnconfig_context_t *)node->noc_context)->send_fifo_full_last_cycle) {
+    if (ctx->send_fifo_full_last_cycle) {
         return false;
     }
 
-    if (flitfifo_insert(&((pnconfig_context_t *)node->noc_context)->send_fifo, &fc)) {
-        ((pnconfig_context_t *)node->noc_context)->send_fifo_full_last_cycle = (((pnconfig_context_t *)node->noc_context)->send_fifo.count >= ((pnconfig_context_t *)node->noc_context)->send_fifo.size - 1);
+    if (flitfifo_insert(&ctx->send_fifo, &fc)) {
+        ctx->send_fifo_full_last_cycle = 
+            (ctx->send_fifo.count >= ctx->send_fifo.size - 1);
         return true;
     }
 
@@ -70,11 +77,14 @@ bool pnconfig_send_flit(node_t *node, rank_t dest, flit_t flit)
 bool pnconfig_recv_flit(node_t *node, rank_t src, flit_t *flit)
 {
     flit_container2_t fc;
+    pnconfig_context_t *ctx = node->noc_context;
 
-    if (flitfifo_remove_by_rank(&((pnconfig_context_t *)node->noc_context)->recv_fifo, src, &fc)) {
+    if (flitfifo_remove_by_rank(&ctx->recv_fifo, src, &fc)) {
         DEBUG("R %lu->%lu(%lx)\n", src, node->rank, fc.flit);
         *flit = fc.flit;
-        ((pnconfig_context_t *)node->noc_context)->recv_fifo_full_last_cycle = ((((pnconfig_context_t *)node->noc_context)->recv_slot_delay.buf[1].src != RANK_EMPTY ? 1 : 0) + ((pnconfig_context_t *)node->noc_context)->recv_fifo.count >= ((pnconfig_context_t *)node->noc_context)->recv_fifo.size - 1);
+        ctx->recv_fifo_full_last_cycle = 
+            ((ctx->recv_slot_delay.buf[1].src != RANK_EMPTY ? 1 : 0) +
+            ctx->recv_fifo.count >= ctx->recv_fifo.size - 1);
         return true;
     }
     return false;
@@ -96,11 +106,16 @@ rank_t pnconfig_probe_any(node_t *node)
 }
 
 
-
 #define conf_inject_period_y (conf_noc_height/2)
 #define conf_inject_period_x (conf_noc_width/2)
 #define conf_starve_threshold (conf_noc_height/2)
 
+/*
+static inline bool recv_fifo_full(pnconfig_context_t *r)
+{
+    return flitfifo_full(&r->recv_fifo);
+}
+*/
 
 static void router_one_cycle(pnconfig_context_t *r)
 {
@@ -305,6 +320,8 @@ static void router_one_cycle(pnconfig_context_t *r)
                     }
                     break;
                 case CONF_BYPASS_2UNBUF:
+// FIXME: correctly take into account that flits might be in the 3-cycle 
+// revc_slot_delay
                     if (((local==EMPTY) && flitfifo_full(&r->recv_fifo)) // not 1 free entry
                         || ((r->recv_fifo.count+2) > r->recv_fifo.size)) // no 2 free entries
                     {
@@ -345,11 +362,14 @@ static void router_one_cycle(pnconfig_context_t *r)
         && (r->corner_fifo.buf[r->corner_fifo.first].dest == r->rank))
     {
          if (conf_bypass_y==CONF_BYPASS_BUF) {
-            if (flitfifo_full(&r->recv_fifo)) stat_recvbuf_full++;
+//            if (flitfifo_full(&r->recv_fifo)) stat_recvbuf_full++;
+            if (r->recv_fifo_full_last_cycle) stat_recvbuf_full++;
             else if (north==FROM_CORNER) stat_collision_cornerbuf_remove++;
             else if (local!=EMPTY) stat_collision_eject++;
             else local = EJECT_FROM_CORNER;
         } else  if (conf_bypass_y==CONF_BYPASS_2BUF) {
+// FIXME: correctly take into account that flits might be in the 3-cycle 
+// revc_slot_delay
             if (((local==EMPTY) && flitfifo_full(&r->recv_fifo)) // not 1 free entry
                 || ((r->recv_fifo.count+2) > r->recv_fifo.size)) // no 2 free entries
             {
@@ -490,25 +510,25 @@ static void router_one_cycle(pnconfig_context_t *r)
     }
     switch (local2) {
         case EJECT_FROM_WEST:
-            flitfifo_insert(&r->recv_fifo, &r->in_west_fc);
+            assert(flitfifo_insert(&r->recv_fifo, &r->in_west_fc));
             break;
         case EJECT_FROM_CORNER:
         {
             flit_container2_t fc;
             flitfifo_remove(&r->corner_fifo, &fc);
-            flitfifo_insert(&r->recv_fifo, &fc);
+            assert(flitfifo_insert(&r->recv_fifo, &fc));
             break;
         }
     }
     switch (corner) {
         case TURN_FROM_WEST:
-            flitfifo_insert(&r->corner_fifo, &r->in_west_fc);
+            assert(flitfifo_insert(&r->corner_fifo, &r->in_west_fc));
             break;
         case INJECT_FROM_LOCAL:
         {
             flit_container2_t fc;
             flitfifo_remove(&r->send_fifo, &fc);
-            flitfifo_insert(&r->corner_fifo, &fc);
+            assert(flitfifo_insert(&r->corner_fifo, &fc));
             break;
         }
     }
@@ -536,10 +556,12 @@ static void router_one_cycle(pnconfig_context_t *r)
 
     flit_container2_t fc;
     if (flitslotdelay_step(&r->recv_slot_delay, &fc)) {
-        flitfifo_insert(&r->recv_fifo, &fc);
+        assert(flitfifo_insert(&r->recv_fifo, &fc));
     }
 
-    r->recv_fifo_full_last_cycle = ((r->recv_slot_delay.buf[0].src != RANK_EMPTY ? 1 : 0) + r->recv_fifo.count >= r->recv_fifo.size - 1);
+    r->recv_fifo_full_last_cycle = 
+        ((r->recv_slot_delay.buf[0].src != RANK_EMPTY ? 1 : 0) + 
+        r->recv_fifo.count >= r->recv_fifo.size - 1);
 
 	// decisions are only saved for VHDL dumping
     r->decision_north = north;
@@ -777,21 +799,28 @@ void pnconfig_print_context(node_t *nodes[], rank_t max_rank)
             );
         printf("\n");
     }
+
+    pnconfig_context_t *n17 = nodes[0x17]->noc_context;
+    flitfifo_verbose(&n17->corner_fifo);
+    printf("\n");
+
+    flitfifo_verbose(&n17->recv_fifo);
+    printf("\n");
 }
 
 
 void pnconfig_print_stat()
 {
     user_printf(
-        "stall to empty x ring: %lu\n"
-        "stall to empty y ring: %lu\n"
-        "stall x inject:        %lu\n"
-        "stall y inject:        %lu\n"
-        "stall eject to corner: %lu\n"
-        "stall eject to local:  %lu\n"
-        "deflect x:             %lu\n"
-        "deflect y:             %lu\n"
-        "eject collision:       %lu\n",
+        "don't inject until x ring is empty:           %lu\n"
+        "don't inject until y ring is empty:           %lu\n"
+        "don't inject due to deflected flit in x ring: %lu\n"
+        "don't inject due to deflected flit in y ring: %lu\n"
+        "don't eject to corner:                        %lu\n"
+        "don't eject to local:                         %lu\n"
+        "deflect x:                                    %lu\n"
+        "deflect y:                                    %lu\n"
+        "eject collision:                              %lu\n",
         stat_stall_x,
         stat_stall_y,
         stat_stall_east,
@@ -882,6 +911,21 @@ void pnconfig_dump_context(const char *file, node_t *nodes[], rank_t max_rank)
         // Stall counters.
         fprintf(out, "%ld sw %x se %x sx %x sn %x ss %x sy %x\n", r, self->stall_west, self->stall_east, self->stall_x, self->stall_north, self->stall_south, self->stall_y);
         fprintf(out, "%ld rbf %x\n", r, self->recv_fifo_full_last_cycle ? 1 : 0);
+    }
+    fclose(out);
+}
+
+void pnconfig_log_traffic(const char *file, node_t *nodes[], rank_t max_rank)
+{
+    FILE *out;
+    rank_t r;
+    out = fopen(file,"a");
+    if( out == NULL){
+        fatal("Could not open the specified log file");
+    }
+    for(r=0;r<max_rank;r++){
+        pnconfig_context_t *self = nodes[r]->noc_context;
+        fprintf(out,"%-20s\t%-20s\t%-20s\t%-20s\n",decision_name(self->decision_north), decision_name(self->decision_east), decision_name(self->decision_local), decision_name(self->decision_corner));
     }
     fclose(out);
 }

@@ -1,1 +1,3 @@
-riscv-gnut-toolchain/
+ghdl/
+riscv-gnu-toolchain/
+riscv-tools/

@@ -18,6 +18,19 @@
 
 
 
+/*
+#include "netrace.h"
+// check if flit is the last flit of packet id from netrace
+static bool checkid(flit_t flit, unsigned packet_id)
+{
+    if (flit!=0) {
+        nt_packet_t *packet = (nt_packet_t *)flit;
+        if (packet->id==packet_id) return true;
+    }
+    return false;
+}
+
+*/
 
 
 extern const char letter[64];
@@ -31,11 +44,14 @@ bool minbd_send_flit(node_t *node, rank_t dest, flit_t flit)
     flit_container2_t fc;
     unsigned long *no = ((minbd_context_t *)node->noc_context)->send_no;
     fc.src = no[dest]*conf_max_rank + node->rank;
-    no[dest]++;
+//    no[dest]++;
     fc.dest =  dest;
     fc.flit = flit;
     bool r = flitfifo_insert(&((minbd_context_t *)node->noc_context)->send_fifo, &fc);
-    if (r) DEBUG("S %lu->%lu(%lx)\n", node->rank, dest, flit);
+    if (r) {
+        no[dest]++;
+        DEBUG("S %lu->%lu(%lx)\n", node->rank, dest, flit);
+    }
     return r;
 }
 
@@ -184,8 +200,11 @@ static void router_one_cycle(minbd_context_t *r)
         if (productive[p[1]]==2) { q[2]=p[1]; q[3]=p[3]; }
                             else { q[2]=p[3]; q[3]=p[1]; }
     } else {
-        // p[2] prefered
-        if (productive[p[1]]==3) { q[2]=p[1]; q[3]=p[3]; }
+        // p[3] prefered
+// wrong:
+//      if (productive[p[2]]==3) { q[2]=p[1]; q[3]=p[3]; }
+//                          else { q[2]=p[3]; q[3]=p[1]; }
+        if (productive[p[3]]==3) { q[2]=p[1]; q[3]=p[3]; }
                             else { q[2]=p[3]; q[3]=p[1]; }
     }
 
@@ -207,7 +226,17 @@ static void router_one_cycle(minbd_context_t *r)
         }
     }
 
-
+/*
+if (r->rank==17) {
+  unsigned a[4];
+  for (i=0; i<4; i++) a[q[i]] = i;
+  printf("productive=%d%d%d%d P=%d%d%d%d q=%d%d%d%d a=%d%d%d%d silver=%d\n",
+    productive[0], productive[1], productive[2], productive[3],
+    p[0], p[1], p[2], p[3], q[0], q[1], q[2], q[3], a[0], a[1], a[2], a[3],
+    silver);
+}
+*/
+#define FID 1015
 
     // 1st stage
     // ----------
@@ -222,6 +251,11 @@ static void router_one_cycle(minbd_context_t *r)
         fc[i] = r->in_fc[i];
         if (r->in_valid[i] && r->in_fc[i].dest==r->rank && eject_count<2) {
             if (!fc_enqueue(&r->recv_fifo, fc[i])) fatal("Out of memory (reassembly buffer)");
+//if (checkid(fc[i].flit, FID)) {
+//    printf("FLIT %d: received at node %ld from node %lx\n", FID, r->rank, fc[i].src);
+//    fc_print_queue(&r->recv_fifo);
+//    printf("\n");
+//}
             if (r->recv_fifo.count > stat_recvbuf_max) 
                 stat_recvbuf_max = r->recv_fifo.count;
             eject_count++;
@@ -266,6 +300,31 @@ static void router_one_cycle(minbd_context_t *r)
         r->s2_valid[i] = valid[i];
         r->s2_fc[i] = fc[i];
     }
+
+/*
+for (i=0; i<4; i++) {
+  if (r->in_valid[i] && checkid(r->in_fc[i].flit, FID))
+    printf("FLIT %d: node %ld input %d\n", FID, r->rank, i);
+  if (r->out_valid[i] && checkid(r->out_fc[i].flit, FID))
+    printf("FLIT %d: node %ld output %d\n", FID, r->rank, i);
+  if (r->s2_valid[i] && checkid(r->s2_fc[i].flit, FID))
+    printf("FLIT %d: node %ld s2 %d\n", FID, r->rank, i);
+}
+
+if (r->rank==9) {
+  fc_print_queue(&r->recv_fifo);
+  printf(" recv_no[28]=%lx node 9\n", r->recv_no[28]*conf_max_rank+28); 
+}
+
+
+if (r->rank==28) {
+  flitfifo_print(&r->send_fifo);
+  printf(" send fifo node 28\n");
+}
+*/
+
+
+
 }
 
 
@@ -416,9 +475,9 @@ void minbd_print_context(node_t *nodes[], rank_t max_rank)
         printf("\n");
     }
 */
-    print_minbd_ctx(nodes[20]);
-    print_minbd_ctx(nodes[44]);
-    print_minbd_ctx(nodes[52]);
+    print_minbd_ctx(nodes[9]);
+    print_minbd_ctx(nodes[10]);
+    print_minbd_ctx(nodes[28]);
 
     for (y=0; y<conf_noc_height; y++) {
         printf("   ");

@@ -25,6 +25,9 @@ unsigned conf_inject_x;
 double conf_inj_rate;
 uint64_t conf_inj_prob;
 
+unsigned long conf_send_fifo_size;
+unsigned long conf_recv_fifo_size;
+unsigned long conf_corner_fifo_size;
 
 // output streams
 FILE *stream_err;	// errors and warnings

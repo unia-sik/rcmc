@@ -19,6 +19,14 @@
 extern node_t *nodes[];
 
 
+typedef struct {
+    msg_queue_t fixedlat_incomming;
+    msg_queue_t fixedlat_intransit[FIXEDLAT_TRANSPORT_DELAY];
+    msg_queue_t fixedlat_arrived;
+    uint_fast32_t fixedlat_intransit_pos;
+} fixedlat_context_t;
+
+
 // Send a flit to a core
 bool fixedlat_send_flit(node_t *node, rank_t dest, flit_t flit)
 {

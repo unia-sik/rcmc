@@ -10,8 +10,11 @@
 //#include "tricore.h"
 //#include "or32.h"
 //#include "mips32.h"
+#include "armv3.h"
 #include "armv6m.h"
 #include "riscv.h"
+#include "rvmpb.h"
+#include "trace.h"
 #include "traffic.h"
 
 #include "fixedlat.h"
@@ -28,6 +31,7 @@
 #include "pnconfig.h"
 #include "minbd.h"
 #include "perfect.h"
+#include "manhattan.h"
 
 
 
@@ -88,8 +92,11 @@ void core_init_context(node_t *node)
 //        case CT_tricore:    tricore_init_context(node); break;
 //        case CT_or32:       or32_init_context(node); break;
 //        case CT_mips32:     mips32_init_context(node); break;
+        case CT_armv3:          armv3_init_context(node); break;
         case CT_armv6m:         armv6m_init_context(node); break;
+        case CT_netrace:        netrace_init_context(node); break;
         case CT_riscv:          riscv_init_context(node); break;
+        case CT_rvmpb:          rvmpb_init_context(node); break;
         case CT_traffic:        traffic_init_context(node); break;
         default:                fatal("Unknown core type %d", node->core_type);
     }
@@ -120,24 +127,29 @@ void core_init_all(node_t *nodes[], rank_t max_rank)
 void core_finish_context(node_t *node)
 {
     switch (node->core_type) {
+        case CT_armv3:          armv3_finish_context(node); break;
         case CT_armv6m:         armv6m_finish_context(node); break;
+        case CT_netrace:        netrace_finish_context(node); break;
         case CT_riscv:          riscv_finish_context(node); break;
+        case CT_rvmpb:          rvmpb_finish_context(node); break;
         case CT_traffic:        traffic_finish_context(node); break;
         default:                fatal("Unknown core type %d", node->core_type);
     }
 }
 
-// Print a register dump of the ARM v6-M
+// Print a register dump
 void core_print_context(node_t *node)
 {
     switch (node->core_type) {
 //        case CT_tricore:    tricore_print_context(node); break;
 //        case CT_or32:       or32_print_context(node); break;
 //        case CT_mips32:     mips32_print_context(node); break;
+        case CT_armv3:          armv3_print_context(node); break;
         case CT_armv6m:         armv6m_print_context(node); break;
+        case CT_netrace:        netrace_print_context(node); break;
         case CT_riscv:          riscv_print_context(node); break;
+        case CT_rvmpb:          riscv_print_context(node); break;
         case CT_traffic:        traffic_print_context(node); break;
-                                break;
         default:                fatal("Unknown core type %d", node->core_type);
     }
 }
@@ -149,8 +161,10 @@ void core_dump_context(const char *file, node_t *node)
 //        case CT_tricore:    tricore_print_context(node); break;
 //        case CT_or32:       or32_print_context(node); break;
 //        case CT_mips32:     mips32_print_context(node); break;
+        case CT_armv3:      fatal("Not implemented for armv3"); break;
         case CT_armv6m:     fatal("Not implemented for armv6m"); break;
         case CT_riscv:      riscv_dump_context(file, node); break;
+        case CT_rvmpb:      riscv_dump_context(file, node); break;
         default:            fatal("Unknown core type %d", node->core_type);
     }
 }
@@ -162,8 +176,10 @@ int core_disasm(node_t *node, addr_t pc, char *dstr)
 //        case CT_tricore:    return no_disasm(node, pc, dstr);
 //        case CT_or32:       return no_disasm(node, pc, dstr);
 //        case CT_mips32:     return no_disasm(node, pc, dstr);
+        case CT_armv3:          return armv3_disasm(node, pc, dstr);
         case CT_armv6m:         return armv6m_disasm(node, pc, dstr);
         case CT_riscv:          return riscv_disasm(node, pc, dstr);
+        case CT_rvmpb:          return riscv_disasm(node, pc, dstr);
         case CT_traffic:        return no_disasm(node, pc, dstr);
         default:                fatal("Unknown core type %d", node->core_type);
     }
@@ -192,11 +208,17 @@ void noc_init_all(node_t *nodes[], uint_fast16_t type, rank_t width, rank_t heig
             case NT_pnconfig:   pnconfig_init(n); break;
             case NT_minbd:      minbd_init(n); break;
             case NT_perfect:    perfect_init(n); break;
+            case NT_manhattan:  manhattan_init(n); break;
             default:            fatal("Unknown NoC type %d", type);
         }
     }
 
     // connect router contexts
+    // y
+    // 2  16 17 18 19 ...
+    // 1   8  9 10 11 ...
+    // 0   0  1  2  3 ...
+    //     0  1  2  3 x
     for (y=0; y<height; y++) {
         for (x=0; x<width; x++) {
             node_t *me = nodes[y*width+x];
@@ -247,6 +269,7 @@ void noc_destroy_all(node_t *nodes[], rank_t max_rank)
             case NT_pnconfig:   pnconfig_destroy(n); break;
             case NT_minbd:      minbd_destroy(n); break;
             case NT_perfect:    perfect_destroy(n); break;
+            case NT_manhattan:  manhattan_destroy(n); break;
             default:            fatal("Unknown NoC type %d", n->noc_type);
         }
     }
@@ -287,6 +310,7 @@ void noc_print_context(node_t *nodes[], rank_t max_rank)
         case NT_pnjm0:          pnjm0_print_context(nodes, max_rank); break;
         case NT_pnconfig:       pnconfig_print_context(nodes, max_rank); break;
         case NT_minbd:          minbd_print_context(nodes, max_rank); break;
+        case NT_manhattan:      manhattan_print_context(nodes, max_rank); break;
 
         default:
             user_printf("Not supported for this NoC\n");
@@ -300,6 +324,16 @@ void noc_dump_context(const char *file, node_t *nodes[], rank_t max_rank)
 
         default:
             user_printf("Not supported for this NoC\n");
+    }
+}
+
+void noc_log_traffic(const char *file, node_t *nodes[], rank_t max_rank)
+{
+    switch(nodes[0]->noc_type){
+        case NT_pnconfig:       pnconfig_log_traffic(file, nodes, max_rank); break;
+
+        default:
+            user_printf("log_traffic is not supported for this NoC variant\n");
     }
 }
 

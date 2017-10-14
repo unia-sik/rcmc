@@ -86,7 +86,7 @@ typedef int32_t int16_min_t;
 
 
 
-typedef int_fast16_t instruction_class_t;
+typedef int_fast32_t instruction_class_t;
 typedef int_fast32_t rank_t; // must be signed, because probe_any can return -1
 typedef uint_fast32_t addr_t;
 
@@ -126,6 +126,11 @@ extern unsigned conf_inject_x;
 extern double conf_inj_rate;
 extern uint64_t conf_inj_prob;
 
+extern unsigned long conf_send_fifo_size;
+extern unsigned long conf_recv_fifo_size;
+extern unsigned long conf_corner_fifo_size;
+
+
 
 
 #define FLIT_LEN 8
@@ -136,6 +141,14 @@ typedef struct {
 	char payload[FLIT_LEN];
 	bool h_marked;
 } flit_container_t; // complete flit with routing data
+
+typedef struct flit_queue_entry_s
+{
+    struct flit_queue_entry_s   *next;
+    rank_t                      dest;
+    flit_t                      flit;
+} flit_queue_entry_t;
+
 
 
 // ---------------------------------------------------------------------

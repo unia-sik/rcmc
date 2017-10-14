@@ -33,8 +33,9 @@
 #define RISCV_LATENCY_ARITH             1
 #define RISCV_LATENCY_ADDR_CALC         0
 #define RISCV_LATENCY_INTERLOCK         1
-#define RISCV_LATENCY_MUL               1
-#define RISCV_LATENCY_DIV               1
+#define RISCV_LATENCY_MUL               5
+#define RISCV_LATENCY_DIV32             35
+#define RISCV_LATENCY_DIV64             67
 #define RISCV_LATENCY_BRANCH_NOTTAKEN   1
 #define RISCV_LATENCY_BRANCH_TAKEN      3
 #define RISCV_LATENCY_FENCE             1
@@ -43,11 +44,18 @@
 #define RISCV_LATENCY_JAL               3
 #define RISCV_LATENCY_JALR              3
 
+#define RISCV_LATENCY_FMIN              1
+#define RISCV_LATENCY_FCMP              1
 #define RISCV_LATENCY_FMV               1
-#define RISCV_LATENCY_FADD              3
-#define RISCV_LATENCY_FMUL              3
-#define RISCV_LATENCY_FDIV              3
-#define RISCV_LATENCY_FMA               3
+#define RISCV_LATENCY_F2I               2
+#define RISCV_LATENCY_I2F               2
+#define RISCV_LATENCY_FADD              4
+#define RISCV_LATENCY_FMUL              4
+#define RISCV_LATENCY_FMA               4
+#define RISCV_LATENCY_FDIV_S            33
+#define RISCV_LATENCY_FDIV_D            41
+#define RISCV_LATENCY_FSQRT_S           45
+#define RISCV_LATENCY_FSQRT_D           57
 
 // core special registers
 #define RISCV_CSR_FFLAGS        0x001
@@ -595,6 +603,275 @@ bool riscv_instruction_uses_reg_t(uint_fast32_t iw) {
   return false;
 }
 
+bool riscv_instruction_uses_dreg_s(uint_fast32_t iw) {
+  switch (iw & 0x7f) {
+    case 0x43:  // FMADD
+      return true;
+    case 0x47:  // FMSUB
+      return true;
+    case 0x4b:  // FNMSUB
+      return true;
+    case 0x4f:  // FNMADD
+      return true;
+    case 0x53:  // FP Operation
+      switch ((iw>>25)&0x7f) {
+        case 0x00: // fadd.s
+            return true;
+        case 0x01: // fadd.d
+            return true;
+        case 0x04: // fsub.s
+            return true;
+        case 0x05: // fsub.d
+            return true;
+        case 0x08: // fmul.s
+            return true;
+        case 0x09: // fmul.d
+            return true;
+        case 0x0c: // fdiv.s
+            return true;
+        case 0x0d: // fdiv.d
+            return true;
+        case 0x10:
+            switch (iw&0x7000){
+                case 0x0000: // fsgnj.s
+                    return true;
+                case 0x1000: // fsgnjn.s
+                    return true;
+                case 0x2000: // fsgnjx.s
+                    return true;
+            }
+            break;
+        case 0x11:
+            switch (iw&0x7000) {
+                case 0x0000: // fsgnj.d
+                    return true;
+                case 0x1000: // fsgnjn.d
+                    return true;
+                case 0x2000: // fsgnjx.d
+                    return true;
+            }
+            break;
+        case 0x14:
+            switch (iw&0x7000) {
+            case 0x0000: // fmin.s
+                return true;
+            case 0x1000: // fmax.s
+                return true;
+            }
+            break;
+        case 0x15:
+            switch (iw&0x7000) {
+            case 0x0000: // fmin.d
+                return true;
+            case 0x1000: // fmax.d
+                return true;
+            }
+            break;
+
+
+        case 0x20: 
+            if ((iw&0x01f00000)==0x00100000) { // fcvt.s.d
+                return true;
+            }
+            break;
+        case 0x21: 
+            if ((iw&0x01f00000)==0x00000000) { // fcvt.d.s
+                return true;
+            }
+            break;
+        case 0x2c: 
+            if ((iw&0x01f00000)==0) { // fsqrt.s
+                return true;
+            }
+            break;
+        case 0x2d: 
+            if ((iw&0x01f00000)==0) { // fsqrt.d
+                return true;
+            }
+            break;
+        case 0x50:
+            switch (iw&0x7000) {
+                case 0x0000: // fle.s
+                    return true;
+                case 0x1000: // flt.s
+                    return true;
+                case 0x2000: // feq.s
+                    return true;
+            }
+            break;
+        case 0x51:
+            switch (iw&0x7000) {
+                case 0x0000: // fle.s
+                    return true;
+                case 0x1000: // flt.s
+                    return true;
+                case 0x2000: // feq.s
+                    return true;
+            }
+            break;
+
+        case 0x60:
+            switch ((iw>>20)&0x1f) {
+            case 0x00: // fcvt.w.s
+                return true;
+            case 0x01: // fcvt.wu.s
+                return true;
+            case 0x02: // fcvt.l.s
+                return true;
+            case 0x03: // fcvt.lu.s
+                return true;
+            }
+            break;
+        case 0x61:
+            switch ((iw>>20)&0x1f) {
+            case 0x00: // fcvt.w.d
+               return true;
+            case 0x01: // fcvt.wu.d
+                return true;
+            case 0x02: // fcvt.l.d
+                return true;
+            case 0x03: // fcvt.lu.d
+                return true;
+            }
+            break;
+        case 0x70:
+            if ((iw&0x01f07000)==0x0000) { // fmv.x.s
+                return true;
+            } else if ((iw&0x01f07000)==0x1000) { // fclass.s
+                return true;
+            }
+            break;
+        case 0x71:
+            if ((iw&0x01f07000)==0) { // fmv.x.d
+                return true;
+            } else if ((iw&0x01f07000)==0x1000) { // fclass.d
+                return true;
+            }
+            break;
+        default:
+            break;
+        }
+        break;
+    
+    default:
+      break;
+  }
+  return false;
+}
+
+bool riscv_instruction_uses_dreg_t(uint_fast32_t iw) {
+  switch (iw & 0x7f) {
+    case 0x27:  // FPU Store
+      return true;
+    case 0x43:  // FMADD
+      return true;
+    case 0x47:  // FMSUB
+      return true;
+    case 0x4b:  // FNMSUB
+      return true;
+    case 0x4f:  // FNMADD
+      return true;
+    case 0x53:  // FP Operation
+      switch ((iw>>25)&0x7f) {
+        case 0x00: // fadd.s
+            return true;
+        case 0x01: // fadd.d
+            return true;
+        case 0x04: // fsub.s
+            return true;
+        case 0x05: // fsub.d
+            return true;
+        case 0x08: // fmul.s
+            return true;
+        case 0x09: // fmul.d
+            return true;
+        case 0x0c: // fdiv.s
+            return true;
+        case 0x0d: // fdiv.d
+            return true;
+        case 0x10:
+            switch (iw&0x7000){
+                case 0x0000: // fsgnj.s
+                    return true;
+                case 0x1000: // fsgnjn.s
+                    return true;
+                case 0x2000: // fsgnjx.s
+                    return true;
+            }
+            break;
+        case 0x11:
+            switch (iw&0x7000) {
+                case 0x0000: // fsgnj.d
+                    return true;
+                case 0x1000: // fsgnjn.d
+                    return true;
+                case 0x2000: // fsgnjx.d
+                    return true;
+            }
+            break;
+        case 0x14:
+            switch (iw&0x7000) {
+            case 0x0000: // fmin.s
+                return true;
+            case 0x1000: // fmax.s
+                return true;
+            }
+            break;
+        case 0x15:
+            switch (iw&0x7000) {
+            case 0x0000: // fmin.d
+                return true;
+            case 0x1000: // fmax.d
+                return true;
+            }
+            break;
+        case 0x50:
+            switch (iw&0x7000) {
+                case 0x0000: // fle.s
+                    return true;
+                case 0x1000: // flt.s
+                    return true;
+                case 0x2000: // feq.s
+                    return true;
+            }
+            break;
+        case 0x51:
+            switch (iw&0x7000) {
+                case 0x0000: // fle.s
+                    return true;
+                case 0x1000: // flt.s
+                    return true;
+                case 0x2000: // feq.s
+                    return true;
+            }
+            break;
+        default:
+            break;
+        }
+        break;
+    
+    default:
+      break;
+  }
+  return false;
+}
+
+bool riscv_instruction_uses_dreg_u(uint_fast32_t iw) {
+  switch (iw & 0x7f) {
+    case 0x43:  // FMADD
+      return true;
+    case 0x47:  // FMSUB
+      return true;
+    case 0x4b:  // FNMSUB
+      return true;
+    case 0x4f:  // FNMADD
+      return true;
+    default:
+      break;
+  }
+  return false;
+}
+
 // ---------------------------------------------------------------------
 // Main switch for decoding and execution
 // ---------------------------------------------------------------------
@@ -604,7 +881,10 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
 {
     if32_t x32, y32;
     uf64_t x64, y64;
-//    long long ll;
+
+    // Originally only used if the instruction is unknown.
+    // But for the register dump generation we use it to recognise branches.
+    node->instruction_word = iw;
 
     node->core.riscv.reg[0] = 0;
 
@@ -781,19 +1061,19 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
                         REG_D = INT64_MIN;
                     else
                         REG_D = (REG_T==0) ? -1 : (REG_S / REG_T);
-                    return RISCV_LATENCY_DIV;
+                    return RISCV_LATENCY_DIV64;
                 case 0x5000: // divu
                     REG_Du = (REG_Tu==0) ? -1 : (REG_Su / REG_Tu);
-                    return RISCV_LATENCY_DIV;
+                    return RISCV_LATENCY_DIV64;
                 case 0x6000: // rem
                     if ((REG_S==INT64_MIN) && (REG_T==-1))
                         REG_D = 0;
                     else
                         REG_D = (REG_T==0) ? REG_S : (REG_S % REG_T);
-                    return RISCV_LATENCY_DIV;
+                    return RISCV_LATENCY_DIV64;
                 case 0x7000: // remu
                     REG_Du = (REG_Tu==0) ? REG_Su : (REG_Su % REG_Tu);
-                    return RISCV_LATENCY_DIV;
+                    return RISCV_LATENCY_DIV64;
                 }
                 break;
 
@@ -923,14 +1203,14 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
                     REG_D = (b==0) ? -1 : 
                         ((a==INT32_MIN) && (b==-1) ? INT32_MIN :
                         (int32_t)(a/b));
-                    return RISCV_LATENCY_DIV;
+                    return RISCV_LATENCY_DIV32;
                 }
                 case 0x5000: // divuw
                 {
                     uint32_t a = REG_Su;
                     uint32_t b = REG_Tu;
                     REG_D = (b==0) ? -1 : (int32_t)(a/b);
-                    return RISCV_LATENCY_DIV;
+                    return RISCV_LATENCY_DIV32;
                 }
                 case 0x6000: // remw
                 {
@@ -939,14 +1219,14 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
                     REG_D = (b==0) ? (int32_t)a : 
                         ((a==INT32_MIN) && (b==-1) ? 0 :
                         (int32_t)(a%b));
-                    return RISCV_LATENCY_DIV;
+                    return RISCV_LATENCY_DIV32;
                 }
                 case 0x7000: // remuw
                 {
                     uint32_t a = REG_Su;
                     uint32_t b = REG_Tu;
                     REG_D = (b==0) ? (int32_t)a : (int32_t)(a%b);
-                    return RISCV_LATENCY_DIV;
+                    return RISCV_LATENCY_DIV32;
                 }
                 }
                 break;
@@ -968,6 +1248,22 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
         case 0x07:
         {
             addr_t addr = REG_S + IMM_I;
+            
+            instruction_class_t latency = RISCV_LATENCY_ADDR_CALC;
+            
+            // next_instruction.DREG_S = DREG_D and next_instruction uses DREG_S
+            if (riscv_instruction_uses_dreg_s(next_iw) && nBRu(19, 15) == BRu(11, 7)) {
+                latency = RISCV_LATENCY_INTERLOCK;
+            }
+            // next_instruction.DREG_T = DREG_D and next_instruction uses DREG_T
+            if (riscv_instruction_uses_dreg_t(next_iw) && nBRu(24, 20) == BRu(11, 7)) {
+                latency = RISCV_LATENCY_INTERLOCK;
+            }
+            // next_instruction.DREG_T = DREG_U and next_instruction uses DREG_U
+            if (riscv_instruction_uses_dreg_u(next_iw) && nBRu(31, 27) == BRu(11, 7)) {
+                latency = RISCV_LATENCY_INTERLOCK;
+            }
+            
             switch (iw & 0x7000) {
             case 0x2000:  // flw
             {
@@ -975,13 +1271,13 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
                 uint16_t lat = generic_memory_load_u64(node, MA_32le, addr, &u);
                 x32.i = u;
                 SREG_D = x32.f;
-                return RISCV_LATENCY_ADDR_CALC+lat;
+                return latency+lat;
             }
             case 0x3000:  // fld
             {
                 uint16_t lat = generic_memory_load_u64(node, MA_64le, addr, &x64.u);
                 DREG_D = x64.f;
-                return RISCV_LATENCY_ADDR_CALC+lat;
+                return latency+lat;
             }
             }
             break;
@@ -990,6 +1286,7 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
         case 0x27:
         {
             addr_t addr = REG_S + IMM_S;
+            
             switch (iw & 0x7000) {
             case 0x2000:  // fsw
                 x32.f = SREG_T;
@@ -1100,12 +1397,12 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
                 set_rm(node, iw);
                 SREG_D = canonical_nan_float(SREG_S / SREG_T);
                 update_client_fp_env(node);
-                return RISCV_LATENCY_FDIV;
+                return RISCV_LATENCY_FDIV_S;
             case 0x0d: // fdiv.d
                 set_rm(node, iw);
                 DREG_D = canonical_nan_double(DREG_S / DREG_T);
                 update_client_fp_env(node);
-                return RISCV_LATENCY_FDIV;
+                return RISCV_LATENCY_FDIV_D;
             case 0x10:
                 switch (iw&0x7000) {
                 case 0x0000: // fsgnj.s
@@ -1142,20 +1439,20 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
                 switch (iw&0x7000) {
                 case 0x0000: // fmin.s
                     SREG_D = (SREG_S < SREG_T) ? SREG_S : SREG_T;
-                    return RISCV_LATENCY_FADD;
+                    return RISCV_LATENCY_FMIN;
                 case 0x1000: // fmax.s
                     SREG_D = (SREG_S > SREG_T) ? SREG_S : SREG_T;
-                    return RISCV_LATENCY_FADD;
+                    return RISCV_LATENCY_FMIN;
                 }
                 break;
             case 0x15:
                 switch (iw&0x7000) {
                 case 0x0000: // fmin.d
                     DREG_D = (DREG_S < DREG_T) ? DREG_S : DREG_T;
-                    return RISCV_LATENCY_FADD;
+                    return RISCV_LATENCY_FMIN;
                 case 0x1000: // fmax.d
                     DREG_D = (DREG_S > DREG_T) ? DREG_S : DREG_T;
-                    return RISCV_LATENCY_FADD;
+                    return RISCV_LATENCY_FMIN;
                 }
                 break;
 
@@ -1181,7 +1478,7 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
                     set_rm(node, iw);
                     SREG_D = canonical_nan_float(sqrtf(SREG_S));
                     update_client_fp_env(node);
-                    return RISCV_LATENCY_FDIV;
+                    return RISCV_LATENCY_FSQRT_S;
                 }
                 break;
             case 0x2d: 
@@ -1189,33 +1486,33 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
                     set_rm(node, iw);
                     DREG_D = canonical_nan_double(sqrt(DREG_S));
                     update_client_fp_env(node);
-                    return RISCV_LATENCY_FDIV;
+                    return RISCV_LATENCY_FSQRT_D;
                 }
                 break;
             case 0x50:
                 switch (iw&0x7000) {
                 case 0x0000: // fle.s
                     REG_D = (SREG_S <= SREG_T) ? 1 : 0;
-                    return RISCV_LATENCY_FADD;
+                    return RISCV_LATENCY_FCMP;
                 case 0x1000: // flt.s
                     REG_D = (SREG_S < SREG_T) ? 1 : 0;
-                    return RISCV_LATENCY_FADD;
+                    return RISCV_LATENCY_FCMP;
                 case 0x2000: // feq.s
                     REG_D = (SREG_S == SREG_T) ? 1 : 0;
-                    return RISCV_LATENCY_FADD;
+                    return RISCV_LATENCY_FCMP;
                 }
                 break;
             case 0x51:
                 switch (iw&0x7000) {
                 case 0x0000: // fle.s
                     REG_D = (DREG_S <= DREG_T) ? 1 : 0;
-                    return RISCV_LATENCY_FADD;
+                    return RISCV_LATENCY_FCMP;
                 case 0x1000: // flt.s
                     REG_D = (DREG_S < DREG_T) ? 1 : 0;
-                    return RISCV_LATENCY_FADD;
+                    return RISCV_LATENCY_FCMP;
                 case 0x2000: // feq.s
                     REG_D = (DREG_S == DREG_T) ? 1 : 0;
-                    return RISCV_LATENCY_FADD;
+                    return RISCV_LATENCY_FCMP;
                 }
                 break;
             // comment on the conversion to integer:
@@ -1232,19 +1529,19 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
                 case 0x00: // fcvt.w.s
                     set_rm(node, iw);
                     REG_D = (int32_t)riscv_fcvt(node, SREG_S, INT32_MIN, INT32_MAX);
-                    return RISCV_LATENCY_FMV;
+                    return RISCV_LATENCY_F2I;
                 case 0x01: // fcvt.wu.s
                     set_rm(node, iw);
                     REG_D = (int32_t)riscv_fcvt(node, SREG_S, 0, UINT32_MAX);
-                    return RISCV_LATENCY_FMV;
+                    return RISCV_LATENCY_F2I;
                 case 0x02: // fcvt.l.s
                     set_rm(node, iw);
                     REG_D = riscv_fcvt(node, SREG_S, INT64_MIN, INT64_MAX);
-                    return RISCV_LATENCY_FMV;
+                    return RISCV_LATENCY_F2I;
                 case 0x03: // fcvt.lu.s
                     set_rm(node, iw);
                     REG_D = riscv_fcvt(node, SREG_S, 0, UINT64_MAX);
-                    return RISCV_LATENCY_FMV;
+                    return RISCV_LATENCY_F2I;
                 }
                 break;
             case 0x61:
@@ -1252,19 +1549,19 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
                 case 0x00: // fcvt.w.d
                     set_rm(node, iw);
                     REG_D = (int32_t)riscv_fcvt(node, DREG_S, INT32_MIN, INT32_MAX);
-                    return RISCV_LATENCY_FMV;
+                    return RISCV_LATENCY_F2I;
                 case 0x01: // fcvt.wu.d
                     set_rm(node, iw);
                     REG_D = (int32_t)riscv_fcvt(node, DREG_S, 0, UINT32_MAX);
-                    return RISCV_LATENCY_FMV;
+                    return RISCV_LATENCY_F2I;
                 case 0x02: // fcvt.l.d
                     set_rm(node, iw);
                     REG_D = riscv_fcvt(node, DREG_S, INT64_MIN, INT64_MAX);
-                    return RISCV_LATENCY_FMV;
+                    return RISCV_LATENCY_F2I;
                 case 0x03: // fcvt.lu.d
                     set_rm(node, iw);
                     REG_D = riscv_fcvt(node, DREG_S, 0, UINT64_MAX);
-                    return RISCV_LATENCY_FMV;
+                    return RISCV_LATENCY_F2I;
                 }
                 break;
 
@@ -1272,32 +1569,32 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
                 switch ((iw>>20)&0x1f) {
                 case 0x00: // fcvt.s.w
                     SREG_D = (double)WREG_S;
-                    return RISCV_LATENCY_FMV;
+                    return RISCV_LATENCY_I2F;
                 case 0x01: // fcvt.s.wu
                     SREG_D = (double)WREG_Su;
-                    return RISCV_LATENCY_FMV;
+                    return RISCV_LATENCY_I2F;
                 case 0x02: // fcvt.s.l
                     SREG_D = (double)REG_S;
-                    return RISCV_LATENCY_FMV;
+                    return RISCV_LATENCY_I2F;
                 case 0x03: // fcvt.s.lu
                     SREG_D = (double)REG_Su;
-                    return RISCV_LATENCY_FMV;
+                    return RISCV_LATENCY_I2F;
                 }
                 break;
             case 0x69:
                 switch ((iw>>20)&0x1f) {
                 case 0x00: // fcvt.d.w
                     DREG_D = (double)WREG_S;
-                    return RISCV_LATENCY_FMV;
+                    return RISCV_LATENCY_I2F;
                 case 0x01: // fcvt.d.wu
                     DREG_D = (double)WREG_Su;
-                    return RISCV_LATENCY_FMV;
+                    return RISCV_LATENCY_I2F;
                 case 0x02: // fcvt.d.l
                     DREG_D = (double)REG_S;
-                    return RISCV_LATENCY_FMV;
+                    return RISCV_LATENCY_I2F;
                 case 0x03: // fcvt.d.lu
                     DREG_D = (double)REG_Su;
-                    return RISCV_LATENCY_FMV;
+                    return RISCV_LATENCY_I2F;
                 }
                 break;
             case 0x70:
@@ -1420,7 +1717,6 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
 
     // alternative: 
     // return ic_exception(node, RISCV_EXCEPTION_ILLEGAL_INSTRUCTION);
-    node->instruction_word = iw;
     node->state = CS_UNKNOWN_INSTRUCTION;
     return IC_STOP;
 }
@@ -1948,6 +2244,7 @@ int riscv_disasm_iw(char *d, addr_t pc, uint_fast32_t iw)
         switch (iw & 0x7000) {
         case 0x0000: D4("send\t%s, %t");
         case 0x1000: D4("cong\t%d");
+        case 0x2000: D4("invmpb");
         case 0x4000: D4("recv\t%d, %s");
         case 0x5000: D4("probe\t%d, %s");
         case 0x6000: D4("wait\t%d");

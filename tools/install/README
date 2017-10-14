@@ -1,15 +1,27 @@
 More information can be found in the headers of the scripts!
 
-build_rv64ixfgmp.sh
--------------------
-Build a RISC-V gcc without multiplication and floating point support, but an
-assembler that supports the Fine Grained Message Passing instructions. 
-Target dir: rcmc/tools/rv64ixfgmp/
+all.sh
+------
+Build all required tools to the standard directories in rcmc/tools/.
 
-fetch_and_build.sh
+build_ghdl.sh
+-------------
+Build GHDL based on LLVM from the git repository.
+Target directory: rcmc/tools/ghdl/
+
+build_riscv_gcc.sh
 ------------------
-Install modified RISC-V toolchain
+Install a RISC-V GCC that supports Fine Grained Message Passing instructions.
+Target directory: rcmc/tools/rv64iamfd/
+
+build_riscv_tools.sh
+--------------------
+Install not only the modified RV64IAMFD compiler, but also the other riscv-tools.
+Target directory: rcmc/tools/riscv/
 
 modify_fgmp.sh
 --------------
-Modify an existing source code repository of riscv-tools to support FGMP
+Modify an existing source code repository of riscv-tools to support FGMP.
+Execute in the riscv-tools/ directory.
+
+

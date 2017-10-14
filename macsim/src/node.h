@@ -13,12 +13,14 @@
 //#include "tricore_context.h"
 //#include "or32_context.h"
 //#include "mips32_context.h"
+#include "armv3_context.h"
 #include "armv6m_context.h"
 #include "riscv_context.h"
 #include "traffic_context.h"
+#include "trace_context.h"
 
 // NoC implementation
-#include "fixedlat_context.h"
+//#include "fixedlat_context.h"
 #include "pnbe0_context.h"
 #include "pnbe1_context.h"
 #include "pnbe2_context.h"
@@ -51,6 +53,9 @@
 #define CT_armv6m       5
 #define CT_patmos       6
 #define CT_riscv        7
+#define CT_armv3        8
+#define CT_netrace      9
+#define CT_rvmpb        10
 
 
 // synthetic traffic pattern type
@@ -68,6 +73,7 @@
 
 // NoC types
 #define NT_fixedlat     0
+#define NT_manhattan    1
 #define NT_pnbe0        2
 #define NT_pnbe1        10
 #define NT_pnbe2        9
@@ -144,9 +150,11 @@ typedef struct node_s {
 //        tricore_context_t       tricore;
 //        or32_context_t          or32;
 //        mips32_context_t        mips32;
+        armv3_context_t         armv3;
         armv6m_context_t        armv6m;
         riscv_context_t         riscv;
         traffic_context_t       traffic;
+        netrace_context_t       netrace;
     } core;
 } node_t;
 
@@ -192,6 +200,9 @@ void noc_route_all(node_t *nodes[], rank_t max_rank);
 void noc_print_context(node_t *nodes[], rank_t max_rank);
 
 void noc_dump_context(const char *file, node_t *nodes[], rank_t max_rank);
+
+// Print a logfile of all flit traffic in a cycle
+void noc_log_traffic(const char *file, node_t *nodes[], rank_t max_rank);
 
 
 #endif // _NODE_H

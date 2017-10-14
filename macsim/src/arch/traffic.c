@@ -1,5 +1,5 @@
 /**
- * riscv.c
+ * traffic.c
  * Core that sends and receives synthetic traffic
  *
  * MacSim project
@@ -83,7 +83,8 @@ instruction_class_t traffic_one_cycle(node_t *node)
 //printf("%lu<%lu %lu->%u\n", rand, conf_inj_prob, i, dest);
             // send directly or add to queue
             if (!node->noc_send_flit(node, dest, node->cycle)) {
-                injqueue_entry_t *n = fatal_malloc(sizeof(injqueue_entry_t));
+                flit_queue_entry_t *n = 
+                    fatal_malloc(sizeof(flit_queue_entry_t));
                 n->next = 0;
                 n->dest = dest;
                 n->flit = node->cycle;
@@ -91,7 +92,8 @@ instruction_class_t traffic_one_cycle(node_t *node)
                     node->core.traffic.injqueue_tail->next = n;
                     node->core.traffic.injqueue_tail = n;
                 } else {
-                    node->core.traffic.injqueue_tail = node->core.traffic.injqueue_head = n;
+                    node->core.traffic.injqueue_tail = n;
+                    node->core.traffic.injqueue_head = n;
                 }
         }
     } else {
@@ -102,8 +104,8 @@ instruction_class_t traffic_one_cycle(node_t *node)
                 node->core.traffic.injqueue_head->flit))
         {
             // remove from queue if send was successful
-            injqueue_entry_t *h = node->core.traffic.injqueue_head;
-            injqueue_entry_t *n = h->next;
+            flit_queue_entry_t *h = node->core.traffic.injqueue_head;
+            flit_queue_entry_t  *n = h->next;
             node->core.traffic.injqueue_head = n;
             if (n==0) node->core.traffic.injqueue_tail = 0;
             free(h);
@@ -167,9 +169,9 @@ void traffic_init_context(node_t *node)
 void traffic_finish_context(node_t *node)
 {
     // remove linked list of flits to send
-    injqueue_entry_t *p=node->core.traffic.injqueue_head;
+    flit_queue_entry_t *p=node->core.traffic.injqueue_head;
     while (p) {
-        injqueue_entry_t *n = p->next;
+        flit_queue_entry_t  *n = p->next;
         free(p);
         p = n;
     }
@@ -187,4 +189,9 @@ void traffic_print_context(node_t *node)
         (double)node->core.traffic.stat_flit_count);
 */
 }
+
+
+
+
+
 

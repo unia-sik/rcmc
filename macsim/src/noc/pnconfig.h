@@ -90,5 +90,6 @@ void pnconfig_print_context(node_t *nodes[], rank_t max_rank);
 void pnconfig_print_stat();
 
 void pnconfig_dump_context(const char *file, node_t *nodes[], rank_t max_rank);
+void pnconfig_log_traffic(const char *file, node_t *nodes[], rank_t max_rank);
 
 #endif
