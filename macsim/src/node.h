@@ -84,6 +84,7 @@
 #define NT_pnconfig     19
 #define NT_minbd        18
 #define NT_perfect      17
+#define NT_debug        16
 
 
 #define NT_paternoster_skeleton			1
@@ -145,6 +146,7 @@ typedef struct node_s {
     // cores
     uint_fast16_t       core_type;
     instruction_class_t (*one_cycle)(struct node_s*);
+    void                (*set_argv)(struct node_s*, int, char*);
     union {
         // each supported core must be added here
 //        tricore_context_t       tricore;

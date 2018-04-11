@@ -140,13 +140,13 @@ done
 printf "\n\n\n\nbegin\n"
 
 YBASE=`echo 2 ^ $XBITS | bc`
-NNODES=$(( $1 \* $2 ))
+NNODES=$(( $1 * $2 ))
 
 for y in $(seq 0 $YMAX)
 do
     for x in $(seq 0 $XMAX)
     do
-        ID=$(( $y \* $YBASE + $x ))
+        ID=$(( $y * $YBASE + $x ))
 
         printf "\t$NODETYPE"
         print_bin $y $YBITS

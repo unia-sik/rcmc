@@ -1,0 +1,46 @@
+crt0.S (Jörg Mische)
+====================
+The standard code of newlib (libgloss/arm/crt0.S) does the following on a 
+Cortex M0:
+
+    SP = __stack ? __stack : .LC0;
+    SL = SP - 64K;
+    memset(__bss_start__, __bss_end__-__bss_start__, 0);
+    hardware_init_hook();  // if it exists
+    software_init_hook();  // if it exists
+    atexit(__libc_fini_array());
+    __libc_init_array();
+    exit(main(0, 0));
+
+By default
+  * hardware_init_hook() and software_init_hook() are not defined
+  * __libc_init_array() does nothing, since the linker symbols
+    __preinit_array_start,
+    __preinit_array_end,
+    __init_array_start, 
+    __init_array_end
+    are not defined and the function _init() is a nop.
+  * __libc_fini_array() does nothing, since the linker symbols
+    __fini_array_start, __fini_array_end are not defined and the function 
+    _init() is a nop.
+  * .LC0 is 0x0008'0000
+
+Consequently, the code can be replaced by
+
+    SP = __stack;
+    SL = SP - 64K;
+    memset(__bss_start__, __bss_end__-__bss_start__, 0);
+    exit(main(0, 0));
+
+and only 3 linker symbols have to be defined.
+
+
+
+
+
+
+
+TODO
+====
+  * Really implement the syscalls
+    Maybe it is better to direcly implement gettimeofday() instead of _gettimeofday()

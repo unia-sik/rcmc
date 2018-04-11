@@ -1,0 +1,4 @@
+rank=1 send 1000 1001 1002 1003 
+rank=1 recv 1 1001 2001 3001 
+rank=1 barrier
+rank=1 finished

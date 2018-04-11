@@ -1,0 +1,4 @@
+rank=2 send 2000 2001 2002 2003 
+rank=2 recv 2 1002 2002 3002 
+rank=2 barrier
+rank=2 finished

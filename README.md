@@ -12,5 +12,7 @@ predictability. Therefore we investigate, if the RC/MC architecture can provide
 the same performance as conventional shared memory multicores with lower energy
 consumption and better real-time capabilities.
 
+CAUTION: Current commit is untested. A tested release as well as some documentation will follow soon.
+
 
 

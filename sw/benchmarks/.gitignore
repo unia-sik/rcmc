@@ -1,0 +1,6 @@
+*.elf
+*.x86
+*.riscv
+*.tmp
+
+s/water/Notizen/*.pdf

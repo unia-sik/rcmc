@@ -55,6 +55,32 @@ node_t *nodes[MAX_RANK];	// list of all nodes
 uint_fast16_t conf_noc_type;     // type of the NoC
 
 
+
+void set_client_arguments(char *argstr)
+{
+    size_t len = strlen(argstr)+1;
+    char argbuf[len+1];
+
+    int argc=0, i=0, j=0;
+    char ch = argstr[i++];
+    while (i<len) {
+        while ((i<len) && ((ch==' ') || (ch=='\t')))
+            ch = argstr[i++];
+        argc++;
+        while ((i<len) && ((ch!=' ') && (ch!='\t'))) {
+            argbuf[j++] = ch;
+            ch = argstr[i++];
+        }
+        argbuf[j++] = 0;
+    }
+
+    rank_t r;
+    for (r=0; r<conf_max_rank; r++) {
+        nodes[r]->set_argv(nodes[r], argc, argbuf);
+    }
+}
+
+
 // Print reason why the process was stopped and return core state
 uint_fast32_t reason_for_stop(node_t *node)
 {
@@ -727,7 +753,7 @@ void process_line(char command, char *argument)
 //        else if (strcmp(argument, "mips32"))    ct=CT_mips32;
 //        else if (strcmp(argument, "or32"))      ct=CT_or32;
 //        else if (strcmp(argument, "patmos"))    ct=CT_patmos;
-        else if (strcmp(argument, "riscv")==0) {
+        else if (strcmp(argument, "riscv")==0 || strcmp(argument, "rv64i")==0) {
             ct=CT_riscv;
         }
         else if (strcmp(argument, "rvmpb")==0) {
@@ -820,7 +846,9 @@ void process_line(char command, char *argument)
         break;
     }
 
-    
+    case 'P': // set command line arguments of simulated program
+        set_client_arguments(argument);
+        break;
 
 
     case 'R': // set NoC routing algorithm
@@ -870,6 +898,9 @@ void process_line(char command, char *argument)
             } else if (strcmp(argument, "perfect")==0) {
                 nt = NT_perfect;
                 s = "Perfect NoC without any latency";
+            } else if (strcmp(argument, "debug")==0) {
+                nt = NT_debug;
+                s = "Perfect NoC with debug output";
                 
             // deprecated naming convention, will be removed soon
             } else if (argument[0]=='C') {
@@ -1197,8 +1228,10 @@ void process_line(char command, char *argument)
         rank_t r;
         bool all_stopped;
         int64_t all_registers[conf_max_rank*32];
+        uint64_t all_fregs[conf_max_rank*32];
         for(r=0; r<conf_max_rank*32; r++){
             all_registers[r] = 0;
+            all_fregs[r] = 0;
         }
         if (!argument) {
             user_printf("Output path and filename for context file expected.\n");
@@ -1245,13 +1278,19 @@ void process_line(char command, char *argument)
                 { 
                     // don't dump during stalls
                     int i;
-//                    char binary[64];
                     for(i=1; i<32; i++){	// ignore the content of reg0
                         if(nodes[r]->core.riscv.reg[i] != all_registers[r*32+i]){
-//                            long_to_binary(nodes[r]->core.riscv.reg[i], binary);
                             fprintf(out,"°%ld x%u %lx\n", r, i, nodes[r]->core.riscv.reg[i]);
                         }
                         all_registers[r*32+i] = nodes[r]->core.riscv.reg[i];
+                    }
+                    for (i=0; i<32; i++) {
+                        uf64_t x;
+                        x.f = nodes[r]->core.riscv.freg[i];
+                        if (x.u != all_fregs[r*32+i]) {
+                            fprintf(out,"°%ld f%u %lx\n", r, i, x.u);
+                        }
+                        all_fregs[r*32+i] = x.u;
                     }
                 }
             }

@@ -1,0 +1,4 @@
+rank=0 send 0 1 2 3 
+rank=0 recv 0 1000 2000 3000 
+rank=0 barrier
+rank=0 finished

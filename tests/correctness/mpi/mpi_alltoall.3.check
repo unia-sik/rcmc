@@ -1,0 +1,4 @@
+rank=3 send 3000 3001 3002 3003 
+rank=3 recv 3 1003 2003 3003 
+rank=3 barrier
+rank=3 finished

@@ -1,0 +1,21 @@
+Check the cycle-by-cycle accuracy of MacSim and VHDL model
+
+Usage:
+
+make
+-------------------
+Compile benchmarks for the FPGA to build/. The sources are from rcmc/sw/tests/ and
+rcmc/sw/benchmarks/
+
+
+cmp.sh
+----------
+Simulate an ELF file with MacSim and GHDL and compare the execution.
+Different working directories are possible to allow parallel execution.
+
+
+cmp_multiple.sh
+---------------
+Compare all ELF files given as arguments in the command line
+
+

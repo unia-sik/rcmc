@@ -11,9 +11,6 @@
 #include <stdio.h>
 
 
-//#define DEBUG printf
-#define DEBUG(...)
-
 
 extern node_t *nodes[];
 
@@ -21,7 +18,6 @@ extern node_t *nodes[];
 // Send a flit to a core
 bool perfect_send_flit(node_t *node, rank_t dest, flit_t flit)
 {
-    DEBUG("S %lu->%lu [%lx]\n", node->rank, dest, flit);
     if (!msg_enqueue(&((perfect_context_t *)nodes[dest]->noc_context)->recvbuf, 
         (uint8_t *)&flit, FLIT_LEN, node->rank))
             fatal("Out of memory");
@@ -35,7 +31,6 @@ bool perfect_recv_flit(node_t *node, rank_t src, flit_t *flit)
     uint32_min_t l;
     bool r = msg_dequeue_rank(&((perfect_context_t *)node->noc_context)->recvbuf, 
         (uint8_t *)flit, &l, src);
-    if (r) DEBUG("R %lu->%lu [%lx]\n", src, node->rank, *flit);
     return r;
 }
 

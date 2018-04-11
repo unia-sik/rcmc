@@ -1,7 +1,0 @@
-Check the cycle-by-cycle accuracy of MacSim and VHDL model
-
-Usage:
-
-cmp_one.sh
-----------
-Compare one benchmark

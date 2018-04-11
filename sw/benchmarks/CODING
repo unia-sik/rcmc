@@ -1,0 +1,41 @@
+Coding guidelines for the parallel real-time benchmarks
+=======================================================
+
+
+Workload specification
+----------------------
+
+  * The workload of a benchmark can be specified in two different ways:
+    Either by compiler macros (DEFAULT_*) or by command line arguments.
+
+  * If no command line options are given, the default values from the
+    compiler macros DEFAULT_* are used.
+
+  * The command line options are a fixed number of values that start with
+    the number of threads, followed by the problem size and optional
+    parameters to modify the standard values. Example:
+
+Examples:
+
+    ./ocean 4 6
+
+runs ocean with 4 threads and a problem size of 6.
+
+    ./ocean
+
+runs ocean with the standard configuration DEFAULT_LOG2_P=4 and
+DEFAULT_LOG2_N=5, which is the same as ./ocean 16 5.
+
+
+
+
+
+Coding for OTAWA
+----------------
+
+  * Standard functions from clib are not allowed.
+    Avoid them (e.g. fabs() or pow(x, 2.0) or use functions from harness.h
+    instead.
+
+  * Don't use do {} while () loops.
+    Use while () {} instead.

@@ -129,17 +129,6 @@ static inline int_fast16_t memory_store(node_t *node, unsigned access_type,
 // floating point math
 // ---------------------------------------------------------------------
 
-typedef union {
-    int32_t i;
-    float f;
-} if32_t;
-
-typedef union {
-    uint64_t u;
-    double f;
-} uf64_t;
-
-
 #define BRu(h,l)	(((iw)>>(l))&((1<<((h)-(l)+1))-1))
 #define REG_S           node->core.riscv.reg[BRu(19, 15)]
 #define REG_Du          (*((uint64_t *)&node->core.riscv.reg[BRu(11, 7)]))
@@ -161,7 +150,7 @@ typedef union {
 
 instruction_class_t rvmpb_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32_t next_iw)
 {
-    if32_t x32;
+    uf32_t x32;
     uf64_t x64;
 
     node->core.riscv.reg[0] = 0;

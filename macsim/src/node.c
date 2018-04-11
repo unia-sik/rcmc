@@ -81,12 +81,17 @@ uint64_t node_rand64(node_t *node)
 }
 
 
+void dont_set_argv(node_t *node, int argc, char *argv)
+{
+}
+
 
 
 // Init the memory
 void core_init_context(node_t *node)
 {
     node->bp_addr = NO_BREAKPOINT;
+    node->set_argv = dont_set_argv;
 
     switch (node->core_type) {
 //        case CT_tricore:    tricore_init_context(node); break;
@@ -208,6 +213,7 @@ void noc_init_all(node_t *nodes[], uint_fast16_t type, rank_t width, rank_t heig
             case NT_pnconfig:   pnconfig_init(n); break;
             case NT_minbd:      minbd_init(n); break;
             case NT_perfect:    perfect_init(n); break;
+            case NT_debug:      debug_init(n); break;
             case NT_manhattan:  manhattan_init(n); break;
             default:            fatal("Unknown NoC type %d", type);
         }
@@ -269,6 +275,7 @@ void noc_destroy_all(node_t *nodes[], rank_t max_rank)
             case NT_pnconfig:   pnconfig_destroy(n); break;
             case NT_minbd:      minbd_destroy(n); break;
             case NT_perfect:    perfect_destroy(n); break;
+            case NT_debug:      debug_destroy(n); break;
             case NT_manhattan:  manhattan_destroy(n); break;
             default:            fatal("Unknown NoC type %d", n->noc_type);
         }
@@ -294,6 +301,7 @@ void noc_route_all(node_t *nodes[], rank_t max_rank)
         case NT_pnconfig:       pnconfig_route_all(nodes, max_rank); break;
         case NT_minbd:          minbd_route_all(nodes, max_rank); break;
         case NT_perfect:        break;
+        case NT_debug:          break;
 
         default:
             for (r=0; r<conf_max_rank; r++)

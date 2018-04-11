@@ -27,7 +27,8 @@
 
 
 
-
+#define RISCV_STACK_END                 0xF0000000
+#define RISCV_STACK_ALIGN_MASK          (-64)
 
 // latency of instructions (in clock cycles)
 #define RISCV_LATENCY_ARITH             1
@@ -49,13 +50,13 @@
 #define RISCV_LATENCY_FMV               1
 #define RISCV_LATENCY_F2I               2
 #define RISCV_LATENCY_I2F               2
-#define RISCV_LATENCY_FADD              4
-#define RISCV_LATENCY_FMUL              4
-#define RISCV_LATENCY_FMA               4
-#define RISCV_LATENCY_FDIV_S            33
-#define RISCV_LATENCY_FDIV_D            41
-#define RISCV_LATENCY_FSQRT_S           45
-#define RISCV_LATENCY_FSQRT_D           57
+#define RISCV_LATENCY_FADD              3
+#define RISCV_LATENCY_FMUL              3
+#define RISCV_LATENCY_FMA               3
+#define RISCV_LATENCY_FDIV_S            25
+#define RISCV_LATENCY_FDIV_D            31
+#define RISCV_LATENCY_FSQRT_S           28
+#define RISCV_LATENCY_FSQRT_D           37
 
 // core special registers
 #define RISCV_CSR_FFLAGS        0x001
@@ -137,6 +138,9 @@
 #define RISCV_EXCEPTION_EXTERNAL_INTERRUPT              0x8000000000000002
 
 
+
+#define CHECK_ALIGNMENT(addr, mask) \
+     if (addr&mask) warning(0, "unaligned memory access in cycle %llu", node->cycle)
 
 
 
@@ -263,16 +267,6 @@ static inline instruction_class_t ic_exception(node_t *node, uint64_t cause)
 // floating point math
 // ---------------------------------------------------------------------
 
-typedef union {
-    int32_t i;
-    float f;
-} if32_t;
-
-typedef union {
-    uint64_t u;
-    double f;
-} uf64_t;
-
 
 // prepare the host FPU environment before a client instruction is emulated
 static void prepare_host_fp_env()
@@ -322,9 +316,10 @@ static void set_rm(node_t *node, uint_fast32_t iw)
 
 static int issignaling_float(float f)
 {
-    if32_t x;
+    uf32_t x;
     x.f = f;
-    return (x.i & 0x00400000) == 0 ? 1 : 0;
+    return (((x.u & 0x7FC00000) == 0x7F800000) &&
+            ((x.u & 0x003FFFFF) != 0)) ? 1 : 0;
 }
 
 
@@ -332,15 +327,43 @@ static int issignaling_double(double f)
 {
     uf64_t x;
     x.f = f;
-    return (x.u & 0x0008000000000000) == 0 ? 1 : 0;
+    return (((x.u & 0x7FF8000000000000) == 0x7FF0000000000000) &&
+            ((x.u & 0x0007FFFFFFFFFFFF) != 0)) ? 1 : 0;
 }
 
 
-static inline float canonical_nan_float(float f)
+static inline float unboxing_float(double d)
 {
-    if32_t x;
+    uf64_t x;
+    uf32_t y;
+    x.f = d;
+    if ((x.i>>32) != -1) {
+        y.u = RISCV_CANONICAL_NAN_FLOAT;
+    } else {
+        y.u = x.u;
+    }
+    return y.f;
+}
+
+
+static inline double boxing_float(float f)
+{
+    uf32_t x;
+    uf64_t y;
     x.f = f;
-    if (isnan(x.f)) x.i = RISCV_CANONICAL_NAN_FLOAT;
+    y.u = 0xffffffff00000000 | x.u;
+    return y.f;
+}
+
+
+static inline double canonical_nan_float(float f)
+{
+    uf64_t x;
+    if (isnan(f)) {
+        x.u = 0xffffffff00000000 | RISCV_CANONICAL_NAN_FLOAT;
+    } else {
+        x.f = boxing_float(f);
+    }
     return x.f;
 }
 
@@ -354,63 +377,42 @@ static inline double canonical_nan_double(double f)
 }
 
 
-// convert result of C99 fpclassify() to RISC-V format
 static uint_fast16_t fclass_float(float f)
 {
-    switch (fpclassify(f)) {
-    case FP_NAN: 
-        return issignaling_float(f)
-            ? RISCV_FCLASS_SIGNALING_NAN
-            : RISCV_FCLASS_QUIET_NAN;
-    case FP_INFINITE: 
-        return signbit(f)
-            ? RISCV_FCLASS_NEG_INF
-            : RISCV_FCLASS_POS_INF;
-    case FP_ZERO:
-        return signbit(f)
-            ? RISCV_FCLASS_NEG_ZERO
-            : RISCV_FCLASS_POS_ZERO;
-    case FP_SUBNORMAL:
-        return signbit(f)
-            ? RISCV_FCLASS_NEG_SUB
-            : RISCV_FCLASS_POS_SUB;
-    case FP_NORMAL:
-        return signbit(f)
-            ? RISCV_FCLASS_NEG_NORMAL
-            : RISCV_FCLASS_POS_NORMAL;
+    uf32_t x;
+    x.f = f;
+    unsigned s = x.u>>31;
+    unsigned e = (x.u>>23) & 0xFF;
+
+    if (e==0) {
+        if ((x.u<<1)==0) return s ? RISCV_FCLASS_NEG_ZERO : RISCV_FCLASS_POS_ZERO;
+        return s ? RISCV_FCLASS_NEG_SUB : RISCV_FCLASS_POS_SUB;
     }
-    assert(!"Invalid value from fp classify()");
-    return 0;
+    if (e==0xFF) {
+        if ((x.u<<9)==0) return s ? RISCV_FCLASS_NEG_INF : RISCV_FCLASS_POS_INF;
+        return ((x.u>>22)&1)==0 ? RISCV_FCLASS_SIGNALING_NAN : RISCV_FCLASS_QUIET_NAN;
+    }
+    return s ? RISCV_FCLASS_NEG_NORMAL : RISCV_FCLASS_POS_NORMAL;
 }
 
 
 static uint_fast16_t fclass_double(double f)
 {
-    switch (fpclassify(f)) {
-    case FP_NAN: 
-        return issignaling_double(f)
-            ? RISCV_FCLASS_SIGNALING_NAN
-            : RISCV_FCLASS_QUIET_NAN;
-    case FP_INFINITE: 
-        return signbit(f)
-            ? RISCV_FCLASS_NEG_INF
-            : RISCV_FCLASS_POS_INF;
-    case FP_ZERO:
-        return signbit(f)
-            ? RISCV_FCLASS_NEG_ZERO
-            : RISCV_FCLASS_POS_ZERO;
-    case FP_SUBNORMAL:
-        return signbit(f)
-            ? RISCV_FCLASS_NEG_SUB
-            : RISCV_FCLASS_POS_SUB;
-    case FP_NORMAL:
-        return signbit(f)
-            ? RISCV_FCLASS_NEG_NORMAL
-            : RISCV_FCLASS_POS_NORMAL;
+    uf64_t x;
+    x.f = f;
+    unsigned s = x.u>>63;
+    unsigned e = (x.u>>52) & 0x7FF;
+    if (e==0) {
+        if ((x.u<<1)==0) return s ? RISCV_FCLASS_NEG_ZERO : RISCV_FCLASS_POS_ZERO;
+        return s ? RISCV_FCLASS_NEG_SUB : RISCV_FCLASS_POS_SUB;
     }
-    assert(!"Invalid value from fp classify()");
-    return 0;
+    if (e==0x7FF) {
+        if ((x.u<<12)==0) return s ? RISCV_FCLASS_NEG_INF : RISCV_FCLASS_POS_INF;
+        return ((x.u>>51)&1)==0 ? RISCV_FCLASS_SIGNALING_NAN : RISCV_FCLASS_QUIET_NAN;
+    }
+    return s ? RISCV_FCLASS_NEG_NORMAL : RISCV_FCLASS_POS_NORMAL;
 }
+
 
 static inline uint64_t riscv_fcvt(node_t *node, double f, int64_t min, uint64_t max)
 {
@@ -485,7 +487,6 @@ static inline uint64_t riscv_mulh(int64_t a, int64_t b)
 
 
 
-
 #define BRu(h,l)	(((iw)>>(l))&((1<<((h)-(l)+1))-1))
 #define BRs(h,l)	((((int64_t)(iw))<<(63-(h)))>>(63-(h)+(l)))
 
@@ -502,14 +503,13 @@ static inline uint64_t riscv_mulh(int64_t a, int64_t b)
 #define WREG_Su         (*((uint32_t *)&node->core.riscv.reg[BRu(19, 15)]))
 #define WREG_Tu         (*((uint32_t *)&node->core.riscv.reg[BRu(24, 20)]))
 
-#define SREG_D          (*((float *)&node->core.riscv.freg[BRu(11, 7)]))
-#define SREG_S          (*((float *)&node->core.riscv.freg[BRu(19, 15)]))
-#define SREG_T          (*((float *)&node->core.riscv.freg[BRu(24, 20)]))
-#define SREG_U          (*((float *)&node->core.riscv.freg[BRu(31, 27)]))
 #define DREG_D          node->core.riscv.freg[BRu(11, 7)]
 #define DREG_S          node->core.riscv.freg[BRu(19, 15)]
 #define DREG_T          node->core.riscv.freg[BRu(24, 20)]
 #define DREG_U          node->core.riscv.freg[BRu(31, 27)]
+#define SREG_S          unboxing_float(DREG_S)
+#define SREG_T          unboxing_float(DREG_T)
+#define SREG_U          unboxing_float(DREG_U)
 
 
 #define IMM_B           ((((int64_t)(int32_t)iw>>19)&0xfffffffffffff000) \
@@ -735,7 +735,7 @@ bool riscv_instruction_uses_dreg_s(uint_fast32_t iw) {
             }
             break;
         case 0x70:
-            if ((iw&0x01f07000)==0x0000) { // fmv.x.s
+            if ((iw&0x01f07000)==0x0000) { // fmv.x.w
                 return true;
             } else if ((iw&0x01f07000)==0x1000) { // fclass.s
                 return true;
@@ -879,7 +879,7 @@ bool riscv_instruction_uses_dreg_u(uint_fast32_t iw) {
 
 instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32_t next_iw)
 {
-    if32_t x32, y32;
+    uf32_t x32, y32;
     uf64_t x64, y64;
 
     // Originally only used if the instruction is unknown.
@@ -939,19 +939,31 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
             }
 
             switch (iw & 0x7000) {
-            case 0x0000: return latency
+            case 0x0000: 
+                return latency
                 + generic_memory_load_u64(node, MA_8, addr, &REG_Du); // lb
-            case 0x1000: return latency
+            case 0x1000: 
+                CHECK_ALIGNMENT(addr, 1);
+                return latency
                 + generic_memory_load_u64(node, MA_16le, addr, &REG_Du); // lh
-            case 0x2000: return latency
+            case 0x2000: 
+                CHECK_ALIGNMENT(addr, 3);
+                return latency
                 + generic_memory_load_u64(node, MA_32le, addr, &REG_Du); // lw
-            case 0x3000: return latency
+            case 0x3000:
+                CHECK_ALIGNMENT(addr, 7);
+                return latency
                 + generic_memory_load_u64(node, MA_64le, addr, &REG_Du); // ld
-            case 0x4000: return latency
+            case 0x4000:
+                return latency
                 + generic_memory_load_u64(node, MA_u8, addr, &REG_Du); // lbu
-            case 0x5000: return latency
+            case 0x5000:
+                CHECK_ALIGNMENT(addr, 1);
+                return latency
                 + generic_memory_load_u64(node, MA_u16le, addr, &REG_Du); // lhu
-            case 0x6000: return latency
+            case 0x6000:
+                CHECK_ALIGNMENT(addr, 3);
+                return latency
                 + generic_memory_load_u64(node, MA_u32le, addr, &REG_Du); // lwu
             }
             break;
@@ -961,13 +973,20 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
         {
             addr_t addr = REG_S + IMM_S;
             switch (iw & 0x7000) {
-            case 0x0000: return RISCV_LATENCY_ADDR_CALC
+            case 0x0000: 
+                return RISCV_LATENCY_ADDR_CALC
                 + generic_memory_store(node, MA_8, addr, REG_Tu); // sb
-            case 0x1000: return RISCV_LATENCY_ADDR_CALC
+            case 0x1000:
+                CHECK_ALIGNMENT(addr, 1);
+                return RISCV_LATENCY_ADDR_CALC
                 + generic_memory_store(node, MA_16le, addr, REG_Tu); // sh
-            case 0x2000: return RISCV_LATENCY_ADDR_CALC
+            case 0x2000:
+                CHECK_ALIGNMENT(addr, 3);
+                return RISCV_LATENCY_ADDR_CALC
                 + generic_memory_store(node, MA_32le, addr, REG_Tu); // sw
-            case 0x3000: return RISCV_LATENCY_ADDR_CALC
+            case 0x3000:
+                CHECK_ALIGNMENT(addr, 7);
+                return RISCV_LATENCY_ADDR_CALC
                 + generic_memory_store(node, MA_64le, addr, REG_Tu); // sd
             }
             break;
@@ -1267,14 +1286,16 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
             switch (iw & 0x7000) {
             case 0x2000:  // flw
             {
+                CHECK_ALIGNMENT(addr, 3);
                 uint64_t u;
                 uint16_t lat = generic_memory_load_u64(node, MA_32le, addr, &u);
-                x32.i = u;
-                SREG_D = x32.f;
+                x32.u = u;
+                DREG_D = boxing_float(x32.f);
                 return latency+lat;
             }
             case 0x3000:  // fld
             {
+                CHECK_ALIGNMENT(addr, 7);
                 uint16_t lat = generic_memory_load_u64(node, MA_64le, addr, &x64.u);
                 DREG_D = x64.f;
                 return latency+lat;
@@ -1289,10 +1310,12 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
             
             switch (iw & 0x7000) {
             case 0x2000:  // fsw
-                x32.f = SREG_T;
+                CHECK_ALIGNMENT(addr, 3);
+                x64.f = DREG_T; // no unboxing!
                 return RISCV_LATENCY_ADDR_CALC
-                    + generic_memory_store(node, MA_32le, addr, x32.i);
+                    + generic_memory_store(node, MA_32le, addr, x64.u);
             case 0x3000:  // fsd
+                CHECK_ALIGNMENT(addr, 7);
                 x64.f = DREG_T;
                 return RISCV_LATENCY_ADDR_CALC
                     + generic_memory_store(node, MA_64le, addr, x64.u);
@@ -1304,7 +1327,7 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
             switch ((iw>>25)&3) {
             case 0x00: // fmadd.s
                 set_rm(node, iw);
-                SREG_D = fmaf(SREG_S, SREG_T, SREG_U);
+                DREG_D = boxing_float(fmaf(SREG_S, SREG_T, SREG_U));
                 update_client_fp_env(node);
                 return RISCV_LATENCY_FMA;
             case 0x01: // fmadd.d
@@ -1319,7 +1342,7 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
             switch ((iw>>25)&3) {
             case 0x00: // fmsub.s
                 set_rm(node, iw);
-                SREG_D = fmaf(SREG_S, SREG_T, -SREG_U);
+                DREG_D = boxing_float(fmaf(SREG_S, SREG_T, -SREG_U));
                 update_client_fp_env(node);
                 return RISCV_LATENCY_FMA;
             case 0x01: // fmsub.d
@@ -1334,7 +1357,7 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
             switch ((iw>>25)&3) {
             case 0x00: // fnmsub.s
                 set_rm(node, iw);
-                SREG_D = -fmaf(SREG_S, SREG_T, -SREG_U);
+                DREG_D = boxing_float(-fmaf(SREG_S, SREG_T, -SREG_U));
                 update_client_fp_env(node);
                 return RISCV_LATENCY_FMA;
             case 0x01: // fnmsub.d
@@ -1349,7 +1372,7 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
             switch ((iw>>25)&3) {
             case 0x00: // fnmadd.s
                 set_rm(node, iw);
-                SREG_D = -fmaf(SREG_S, SREG_T, SREG_U);
+                DREG_D = boxing_float(-fmaf(SREG_S, SREG_T, SREG_U));
                 update_client_fp_env(node);
                 return RISCV_LATENCY_FMA;
             case 0x01: // fnmadd.d
@@ -1365,7 +1388,7 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
             switch ((iw>>25)&0x7f) {
             case 0x00: // fadd.s
                 set_rm(node, iw);
-                SREG_D = canonical_nan_float(SREG_S + SREG_T);
+                DREG_D = canonical_nan_float(SREG_S + SREG_T);
                 update_client_fp_env(node);
                 return RISCV_LATENCY_FADD;
             case 0x01: // fadd.d
@@ -1375,7 +1398,7 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
                 return RISCV_LATENCY_FADD;
             case 0x04: // fsub.s
                 set_rm(node, iw);
-                SREG_D = canonical_nan_float(SREG_S - SREG_T);
+                DREG_D = canonical_nan_float(SREG_S - SREG_T);
                 update_client_fp_env(node);
                 return RISCV_LATENCY_FADD;
             case 0x05: // fsub.d
@@ -1385,7 +1408,7 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
                 return RISCV_LATENCY_FADD;
             case 0x08: // fmul.s
                 set_rm(node, iw);
-                SREG_D = canonical_nan_float(SREG_S * SREG_T);
+                DREG_D = canonical_nan_float(SREG_S * SREG_T);
                 update_client_fp_env(node);
                 return RISCV_LATENCY_FMUL;
             case 0x09: // fmul.d
@@ -1395,7 +1418,7 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
                 return RISCV_LATENCY_FMUL;
             case 0x0c: // fdiv.s
                 set_rm(node, iw);
-                SREG_D = canonical_nan_float(SREG_S / SREG_T);
+                DREG_D = canonical_nan_float(SREG_S / SREG_T);
                 update_client_fp_env(node);
                 return RISCV_LATENCY_FDIV_S;
             case 0x0d: // fdiv.d
@@ -1406,16 +1429,16 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
             case 0x10:
                 switch (iw&0x7000) {
                 case 0x0000: // fsgnj.s
-                    SREG_D = copysignf(SREG_S, SREG_T);
+                    DREG_D = boxing_float(copysignf(SREG_S, SREG_T));
                     return RISCV_LATENCY_FMV;
                 case 0x1000: // fsgnjn.s
-                    SREG_D = copysignf(SREG_S, -SREG_T);
+                    DREG_D = boxing_float(copysignf(SREG_S, -SREG_T));
                     return RISCV_LATENCY_FMV;
                 case 0x2000: // fsgnjx.s
                     x32.f = SREG_S;
                     y32.f = SREG_T;
                     x32.i = (x32.i & 0x7fffffff) | ((x32.i^y32.i) & 0x80000000);
-                    SREG_D = x32.f;
+                    DREG_D = boxing_float(x32.f);
                     return RISCV_LATENCY_FMV;
                 }
                 break;
@@ -1438,20 +1461,67 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
             case 0x14:
                 switch (iw&0x7000) {
                 case 0x0000: // fmin.s
-                    SREG_D = (SREG_S < SREG_T) ? SREG_S : SREG_T;
+                    x32.f = SREG_S;
+                    y32.f = SREG_T;
+                    if ((x32.u|y32.u) == 0x80000000) { // fmin(+0.0, -0.0) = -0.0
+                        x64.u = 0xffffffff80000000;
+                        DREG_D = x64.f;
+                    } else {
+                        DREG_D = canonical_nan_float(fminf(x32.f, y32.f));
+                        if (issignaling_float(x32.f) ||
+                            issignaling_float(y32.f))
+                        {
+                            node->core.riscv.fcsr |= RISCV_FFLAGS_NV;
+                        }
+                    }
                     return RISCV_LATENCY_FMIN;
                 case 0x1000: // fmax.s
-                    SREG_D = (SREG_S > SREG_T) ? SREG_S : SREG_T;
+                    x32.f = SREG_S;
+                    y32.f = SREG_T;
+                    if ((x32.u|y32.u) == 0x80000000) { // fmax(+0.0, -0.0) = +0.0
+                        x64.i = 0xffffffff00000000 | (x32.i&y32.i);
+                        DREG_D = x64.f;
+                    } else {
+                        DREG_D = canonical_nan_float(fmaxf(x32.f, y32.f));
+                        if (issignaling_float(x32.f) ||
+                            issignaling_float(y32.f))
+                        {
+                            node->core.riscv.fcsr |= RISCV_FFLAGS_NV;
+                        }
+                    }
                     return RISCV_LATENCY_FMIN;
                 }
                 break;
             case 0x15:
                 switch (iw&0x7000) {
                 case 0x0000: // fmin.d
-                    DREG_D = (DREG_S < DREG_T) ? DREG_S : DREG_T;
+                    x64.f = DREG_S;
+                    y64.f = DREG_T;
+                    if ((x64.u|y64.u) == 0x8000000000000000) { // fmin(+0.0, -0.0) = -0.0
+                        DREG_D = -0.0;
+                    } else {
+                        DREG_D = canonical_nan_double(fmin(x64.f, y64.f));
+                        if (issignaling_double(x64.f) ||
+                            issignaling_double(y64.f))
+                        {
+                            node->core.riscv.fcsr |= RISCV_FFLAGS_NV;
+                        }
+                    }
                     return RISCV_LATENCY_FMIN;
                 case 0x1000: // fmax.d
-                    DREG_D = (DREG_S > DREG_T) ? DREG_S : DREG_T;
+                    x64.f = DREG_S;
+                    y64.f = DREG_T;
+                    if ((x64.u|y64.u) == 0x8000000000000000) { // fmax(+0.0, -0.0) = +0.0
+                        x64.u = x64.u&y64.u;
+                        DREG_D = x64.f;
+                    } else {
+                        DREG_D = canonical_nan_double(fmax(x64.f, y64.f));
+                        if (issignaling_double(x64.f) ||
+                            issignaling_double(y64.f))
+                        {
+                            node->core.riscv.fcsr |= RISCV_FFLAGS_NV;
+                        }
+                    }
                     return RISCV_LATENCY_FMIN;
                 }
                 break;
@@ -1460,7 +1530,7 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
             case 0x20: 
                 if ((iw&0x01f00000)==0x00100000) { // fcvt.s.d
                     set_rm(node, iw);
-                    SREG_D = canonical_nan_float((float)DREG_S);
+                    DREG_D = canonical_nan_float((float)DREG_S);
                     update_client_fp_env(node);
                     return RISCV_LATENCY_FMV;
                 }
@@ -1476,7 +1546,7 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
             case 0x2c: 
                 if ((iw&0x01f00000)==0) { // fsqrt.s
                     set_rm(node, iw);
-                    SREG_D = canonical_nan_float(sqrtf(SREG_S));
+                    DREG_D = canonical_nan_float(sqrtf(SREG_S));
                     update_client_fp_env(node);
                     return RISCV_LATENCY_FSQRT_S;
                 }
@@ -1493,25 +1563,31 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
                 switch (iw&0x7000) {
                 case 0x0000: // fle.s
                     REG_D = (SREG_S <= SREG_T) ? 1 : 0;
+                    update_client_fp_env(node);
                     return RISCV_LATENCY_FCMP;
                 case 0x1000: // flt.s
                     REG_D = (SREG_S < SREG_T) ? 1 : 0;
+                    update_client_fp_env(node);
                     return RISCV_LATENCY_FCMP;
                 case 0x2000: // feq.s
                     REG_D = (SREG_S == SREG_T) ? 1 : 0;
+                    update_client_fp_env(node);
                     return RISCV_LATENCY_FCMP;
                 }
                 break;
             case 0x51:
                 switch (iw&0x7000) {
-                case 0x0000: // fle.s
+                case 0x0000: // fle.d
                     REG_D = (DREG_S <= DREG_T) ? 1 : 0;
+                    update_client_fp_env(node);
                     return RISCV_LATENCY_FCMP;
-                case 0x1000: // flt.s
+                case 0x1000: // flt.d
                     REG_D = (DREG_S < DREG_T) ? 1 : 0;
+                    update_client_fp_env(node);
                     return RISCV_LATENCY_FCMP;
-                case 0x2000: // feq.s
+                case 0x2000: // feq.d
                     REG_D = (DREG_S == DREG_T) ? 1 : 0;
+                    update_client_fp_env(node);
                     return RISCV_LATENCY_FCMP;
                 }
                 break;
@@ -1568,16 +1644,16 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
             case 0x68:
                 switch ((iw>>20)&0x1f) {
                 case 0x00: // fcvt.s.w
-                    SREG_D = (double)WREG_S;
+                    DREG_D = boxing_float((float)WREG_S);
                     return RISCV_LATENCY_I2F;
                 case 0x01: // fcvt.s.wu
-                    SREG_D = (double)WREG_Su;
+                    DREG_D = boxing_float((float)WREG_Su);
                     return RISCV_LATENCY_I2F;
                 case 0x02: // fcvt.s.l
-                    SREG_D = (double)REG_S;
+                    DREG_D = boxing_float((float)REG_S);
                     return RISCV_LATENCY_I2F;
                 case 0x03: // fcvt.s.lu
-                    SREG_D = (double)REG_Su;
+                    DREG_D = boxing_float((float)REG_Su);
                     return RISCV_LATENCY_I2F;
                 }
                 break;
@@ -1598,9 +1674,9 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
                 }
                 break;
             case 0x70:
-                if ((iw&0x01f07000)==0x0000) { // fmv.x.s
-                    x32.f = SREG_S;
-                    REG_D = x32.i;
+                if ((iw&0x01f07000)==0x0000) { // fmv.x.w
+                    x64.f = DREG_S;
+                    REG_D = (int32_t)x64.u;
                     return RISCV_LATENCY_FMV;
                 } else if ((iw&0x01f07000)==0x1000) { // fclass.s
                     REG_D = fclass_float(SREG_S);
@@ -1618,9 +1694,9 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
                 }
                 break;
             case 0x78:
-                if ((iw&0x01f07000)==0) { // fmv.s.x
+                if ((iw&0x01f07000)==0) { // fmv.w.x
                     x32.i = REG_S;
-                    SREG_D = x32.f;
+                    DREG_D = boxing_float(x32.f);
                     return RISCV_LATENCY_FMV;
                 }
                 break;
@@ -1713,6 +1789,44 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
                 }*/
             }
         }
+
+        // PIMP
+        case 0x5b:
+        {
+            switch (iw & 0x7000) {
+                case 0x0000: // snd s t
+                    if (!node->noc_send_flit(node, REG_S, REG_T)) {
+                        fatal("RISC-V exception: send buffer full");
+                    }
+                    return 1;
+                case 0x2000: // rcvn d
+                    REG_D = node->noc_probe_any(node); 
+                        // UGLY, but working
+                    return 1;
+                case 0x3000: // rcvp d
+                {
+                    flit_t flit;
+                    if (!node->noc_recv_flit(node, node->noc_probe_any(node), &flit)) {
+                        fatal("RISC-V exception: recv buffer empty");
+                    }
+                    REG_D = flit;
+                    return 1;
+                }
+            }
+        }
+
+        // PIMP branches
+        case 0x7b:
+        {
+            addr_t disp = IMM_B;
+            switch (iw & 0x7000) {
+            case 0x0000: return ic_branch(node, !node->noc_sender_ready(node), disp); // bsf
+            case 0x1000: return ic_branch(node, node->noc_sender_ready(node), disp); // bsnf
+            case 0x2000: return ic_branch(node, node->noc_probe_any(node)<0, disp); // bre
+            case 0x3000: return ic_branch(node, node->noc_probe_any(node)>=0, disp); // brne
+            }
+            break;
+        }
     }
 
     // alternative: 
@@ -1737,10 +1851,39 @@ instruction_class_t riscv_one_cycle(node_t *node)
 }
 
 
+// push the command line arguments on the stack
+// argbuf is the concatination of argc zero-terminated strings
+void riscv_set_argv(node_t *node, int argc, char *argbuf)
+{
+    uint_fast64_t i, len=0;
+
+    for (i=0; i<argc; i++) {
+        while (argbuf[len]!=0) len++;
+        len++;
+    }
+
+    addr_t sp = (RISCV_STACK_END - 8*(argc+2) - len) & RISCV_STACK_ALIGN_MASK;
+    addr_t argbuf_addr = sp+8*(argc+2);
+    addr_t ofs = 0;
+
+    generic_memory_store(node, MA_64le, sp, argc);
+    for (i=0; i<argc; i++) {
+        generic_memory_store(node, MA_64le, sp+8+8*i, argbuf_addr+ofs);
+        while (argbuf[ofs]!=0) ofs++;
+        ofs++;
+    }
+    generic_memory_store(node, MA_64le, sp+8+8*argc, 0); // argv[argc] = 0
+    memory_write(node, argbuf_addr, (uint8_t *)argbuf, len);
+    node->core.riscv.reg[2] = sp;
+}
+
+
 // Init context
 void riscv_init_context(node_t *node)
 {
     uint_fast32_t i;
+
+    node->set_argv = riscv_set_argv;
 
     memory_init(node, MT_PAGED_32BIT, 0x100000000LL);
 
@@ -1759,7 +1902,7 @@ void riscv_init_context(node_t *node)
     node->core.riscv.mcause = 0; // undef
     node->core.riscv.fcsr = 0;
 
-    for (i = 0; i < 15; i++)
+    for (i = 0; i < 31; i++)
         node->core.riscv.reg[i] = 0;
 }
 
@@ -2250,7 +2393,28 @@ int riscv_disasm_iw(char *d, addr_t pc, uint_fast32_t iw)
         case 0x6000: D4("wait\t%d");
         case 0x7000: D4("any\t%d");
         }
+        break;
+
+    case 0x5b:
+        switch (iw & 0x7000) {
+        case 0x0000: D4("snd\t%s, %t");
+        case 0x2000: D4("rcvn\t%d");
+        case 0x3000: D4("rcvp\t%d");
+        }
+        break;
+
+    case 0x7b:
+        switch (iw & 0x7000) {
+        case 0x0000: D4("bsf\t%b");
+        case 0x1000: D4("bsnf\t%b");
+        case 0x2000: D4("bre\t%b");
+        case 0x3000: D4("brne\t%b");
+        }
+        break;
     }
+
+
+
     if ((iw&3)==3) {
         sprintf(d, ".word\t0x%08"PRIxFAST32, iw);
         return 4;
