@@ -25,6 +25,25 @@
 #define DUMP_BYTES_PER_LINE	16
 
 
+addr_t memory_access_len[] = {
+    [MA_8]      = 1,
+    [MA_u8]     = 1,
+    [MA_16le]   = 2,
+    [MA_u16le]  = 2,
+    [MA_16be]   = 2,
+    [MA_u16be]  = 2,
+    [MA_32le]   = 4,
+    [MA_u32le]  = 4,
+    [MA_32be]   = 4,
+    [MA_u32be]  = 4,
+    [MA_64le]   = 8,
+    [MA_u64le]  = 8,
+    [MA_64be]   = 8,
+    [MA_u64be]  = 8,
+};
+
+
+
 // Init memory
 void memory_init(node_t *node, uint16_min_t mt, uint64_min_t ms)
 {

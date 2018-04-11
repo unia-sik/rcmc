@@ -166,7 +166,6 @@ uint_fast64_t get_timestamp()
 // Simulate all cores and the periodical interconnect
 void simulation()
 {
-    bool ready[conf_max_rank];
     rank_t r;
     cycle_t min=CYCLE_T_MAX;
     cycle_t max=0;
@@ -200,11 +199,7 @@ netrace_print_context(nodes[0]);
     for (r=0; r<conf_max_rank; r++)
     {
         // determine, which cores are still running
-        if (!CS_READY(nodes[r]->state)) {
-            ready[r] = 0;
-        } else {
-            ready[r] = 1;
-
+        if (CS_READY(nodes[r]->state)) {
             cycle_t c = nodes[r]->cycle;
             if (c<min) min=c;
             if (c>max) max=c;

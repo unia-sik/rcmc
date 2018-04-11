@@ -1,7 +1,8 @@
 /* shexdump
  * Read an ELF-file and convert it to a hex format
  */
- 
+
+#include <stdarg.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>

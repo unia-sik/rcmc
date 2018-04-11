@@ -1,5 +1,5 @@
 all:
-	clang -o shexdump -O3 shexdump.c
+	$(CC) -o shexdump $(CFLAGS) shexdump.c
 
 clean:
 	rm shexdump

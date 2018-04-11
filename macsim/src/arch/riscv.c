@@ -122,7 +122,7 @@
 #define RISCV_FCLASS_SIGNALING_NAN      0x0100
 #define RISCV_FCLASS_QUIET_NAN          0x0200
 
-#define RISCV_CANONICAL_NAN_FLOAT       0x7FC00000
+//#define RISCV_CANONICAL_NAN_FLOAT       0x7FC00000
 #define RISCV_CANONICAL_NAN_DOUBLE      0x7FF8000000000000
 
 
@@ -332,30 +332,6 @@ static int issignaling_double(double f)
 }
 
 
-static inline float unboxing_float(double d)
-{
-    uf64_t x;
-    uf32_t y;
-    x.f = d;
-    if ((x.i>>32) != -1) {
-        y.u = RISCV_CANONICAL_NAN_FLOAT;
-    } else {
-        y.u = x.u;
-    }
-    return y.f;
-}
-
-
-static inline double boxing_float(float f)
-{
-    uf32_t x;
-    uf64_t y;
-    x.f = f;
-    y.u = 0xffffffff00000000 | x.u;
-    return y.f;
-}
-
-
 static inline double canonical_nan_float(float f)
 {
     uf64_t x;
@@ -487,8 +463,8 @@ static inline uint64_t riscv_mulh(int64_t a, int64_t b)
 
 
 
-#define BRu(h,l)	(((iw)>>(l))&((1<<((h)-(l)+1))-1))
-#define BRs(h,l)	((((int64_t)(iw))<<(63-(h)))>>(63-(h)+(l)))
+#define BRu(h,l)        (((iw)>>(l))&((1<<((h)-(l)+1))-1))
+#define BRs(h,l)        ((((int64_t)(iw))<<(63-(h)))>>(63-(h)+(l)))
 
 #define REG_D           node->core.riscv.reg[BRu(11, 7)]
 #define REG_S           node->core.riscv.reg[BRu(19, 15)]
@@ -496,12 +472,6 @@ static inline uint64_t riscv_mulh(int64_t a, int64_t b)
 #define REG_Du          (*((uint64_t *)&node->core.riscv.reg[BRu(11, 7)]))
 #define REG_Su          (*((uint64_t *)&node->core.riscv.reg[BRu(19, 15)]))
 #define REG_Tu          (*((uint64_t *)&node->core.riscv.reg[BRu(24, 20)]))
-//#define WREG_D          (*((int32_t *)&node->core.riscv.reg[BRu(11, 7)]))
-#define WREG_S          (*((int32_t *)&node->core.riscv.reg[BRu(19, 15)]))
-#define WREG_T          (*((int32_t *)&node->core.riscv.reg[BRu(24, 20)]))
-//#define WREG_Du         (*((uint32_t *)&node->core.riscv.reg[BRu(11, 7)]))
-#define WREG_Su         (*((uint32_t *)&node->core.riscv.reg[BRu(19, 15)]))
-#define WREG_Tu         (*((uint32_t *)&node->core.riscv.reg[BRu(24, 20)]))
 
 #define DREG_D          node->core.riscv.freg[BRu(11, 7)]
 #define DREG_S          node->core.riscv.freg[BRu(19, 15)]
@@ -1644,10 +1614,10 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
             case 0x68:
                 switch ((iw>>20)&0x1f) {
                 case 0x00: // fcvt.s.w
-                    DREG_D = boxing_float((float)WREG_S);
+                    DREG_D = boxing_float((float)(int32_t)REG_S);
                     return RISCV_LATENCY_I2F;
                 case 0x01: // fcvt.s.wu
-                    DREG_D = boxing_float((float)WREG_Su);
+                    DREG_D = boxing_float((float)(uint32_t)REG_S);
                     return RISCV_LATENCY_I2F;
                 case 0x02: // fcvt.s.l
                     DREG_D = boxing_float((float)REG_S);
@@ -1660,10 +1630,10 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
             case 0x69:
                 switch ((iw>>20)&0x1f) {
                 case 0x00: // fcvt.d.w
-                    DREG_D = (double)WREG_S;
+                    DREG_D = (double)(int32_t)REG_S;
                     return RISCV_LATENCY_I2F;
                 case 0x01: // fcvt.d.wu
-                    DREG_D = (double)WREG_Su;
+                    DREG_D = (double)(uint32_t)REG_S;
                     return RISCV_LATENCY_I2F;
                 case 0x02: // fcvt.d.l
                     DREG_D = (double)REG_S;
