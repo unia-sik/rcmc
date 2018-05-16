@@ -100,8 +100,8 @@ int main(int argc, char *argv[])
             }
         }
     } while (send_node_remain!=0 || recv_node_remain!=0);
-    printf("Okay\n");
-    putchar('k');
 
+    putchar('k');
+    putchar('\n');
     return 0;
 }

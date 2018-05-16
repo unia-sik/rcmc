@@ -340,9 +340,6 @@ int main(int argc, char *argv[])
         xorshift128plus_jump(seed);
     }
 
-    // start timing
-    unsigned long start0 = rdcycle();
-
     // local sort of 8 consecutive elements
     for (k=0; k<blocksize; k+=CHUNK_SIZE) {
         chunk_sort_oddeven(buf+k);
@@ -395,8 +392,6 @@ int main(int argc, char *argv[])
         *begin = next_a;
     }
 
-    unsigned long start = rdcycle();
-
     // inter-node odd-even merge sorting
     for (i=0; i<log2p; i++) {
 
@@ -424,8 +419,6 @@ int main(int argc, char *argv[])
         }
     }
 
-
-
     // simple barrier
     if (my_cid==0) {
         fgmp_send_flit(1, 0);
@@ -435,17 +428,12 @@ int main(int argc, char *argv[])
         fgmp_send_flit((my_cid+1) % max_cid, 0);
     }
 
-    // stop timing
-    unsigned long stop = rdcycle();
-
-
-
     // check local
     uint64_t v = 0, lower;
     for (k=0; k<blocksize; k++) {
         uint64_t x = buf[toggle+k];
         if (v > x) {
-            printf("core %ld: %lx > a[%ld]=%lx\n", my_cid, v, k, x);
+            putchar('U'); // unordered within one core
             v = UINT64_MAX;
             break;
         }
@@ -455,19 +443,20 @@ int main(int argc, char *argv[])
     // sync check
     lower = (my_cid==0) ? 0 : fgmp_recv_flit(my_cid-1);
     if (lower > buf[toggle]) {
-        printf("first element %ld is lower than last element %ld of previous core\n",
-            buf[toggle], lower);
+        // first element is lower than last element of previous core
+        putchar('L');
     }
 
-    if (my_cid<max_cid-1) {
-        fgmp_send_flit(my_cid+1, v);
-    } else if (v != UINT64_MAX) {
-        printf("correctly sorted %lu elements in %lu cycles"
-            " ( %lu cycles/iteration/element) local sorting: %ld cycles\n",
-            blocksize*(1<<log2p), stop-start,
-            (stop-start)/((log2p+1)*log2p/2)/blocksize,
-            start-start0);
-    }
+    fgmp_send_flit((my_cid<max_cid-1) ? my_cid+1 : 0, v);
 
+    if (my_cid==0) {
+        v = fgmp_recv_flit(max_cid-1);
+        if (v != UINT64_MAX) {
+            putchar('k'); // successful
+        } else {
+            putchar('F'); // result not ordered
+        }
+        putchar('\n');
+    }
     return 0;
 }

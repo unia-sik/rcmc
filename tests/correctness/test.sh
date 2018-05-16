@@ -151,8 +151,7 @@ do
                 NAME=`basename ${ELF} .${ARCH}.elf`
                 ${SIMULATOR} -A${ARCH} -N64 -a${ELF} \
                     -c0 -mcoreout.tmp ${OPTIONS} -g -q > simout.tmp
-                sort coreout.tmp | diff fgmp/${NAME}.0.check - \
-                    || error "${NAME}: wrong output on core 0 "
+                echo "k" | diff - coreout.tmp || error "${NAME}: wrong output"
                 passed ${NAME}
             done
             ;;

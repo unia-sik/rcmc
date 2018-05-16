@@ -20,6 +20,7 @@ uint32_t my_random(uint32_t max)
 static inline void test_result(char pass) 
 {
     putchar(pass);
+    putchar('\n');
     exit(pass);
 }
 
