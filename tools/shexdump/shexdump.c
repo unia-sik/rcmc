@@ -16,6 +16,7 @@
 #define OF_ALTERA_ROM   2
 
 #define OF_MAREK_ARRAY  3
+#define OF_MAREK_VECTOR	4
 
 unsigned output_format = OF_ALTERA_HEX;
 
@@ -114,7 +115,7 @@ void altera_rom_write_block(FILE *f, unsigned bytewidth, unsigned blocklen,
 
 
 
-
+// deprecated -- replaced by marek_vector_* for new versions
 void marek_array_write_prefix(FILE *f, unsigned bytewidth, unsigned blocklen)
 {
     fprintf(f, "LIBRARY ieee;\n"
@@ -135,7 +136,7 @@ void marek_array_write_prefix(FILE *f, unsigned bytewidth, unsigned blocklen)
       blocklen-1, 8*bytewidth-1);
 }
 
-
+// deprecated -- replaced by marek_vector_* for new versions
 void marek_array_write_block(FILE *f, unsigned bytewidth, unsigned blocklen,
     uint_fast32_t addr, const unsigned char *buf, uint_fast32_t len)
 {
@@ -153,7 +154,7 @@ void marek_array_write_block(FILE *f, unsigned bytewidth, unsigned blocklen,
     i = i/bytewidth;
 }
 
-
+// deprecated -- replaced by marek_vector_* for new versions
 void marek_array_write_suffix(FILE *f, unsigned bytewidth, unsigned blocklen)
 {
     fprintf(f, "  others=>(others=>'0'));\n"
@@ -204,8 +205,62 @@ void marek_array_write_suffix(FILE *f, unsigned bytewidth, unsigned blocklen)
 }
 
 
+void marek_vector_write_prefix(FILE *f, unsigned bytewidth, unsigned blocklen)
+{
+    fprintf(f, "LIBRARY ieee;\n"
+      "USE ieee.std_logic_1164.all;\n"
+      "\n"
+      "PACKAGE dmem_content IS\n"
+      "type MEM is array (0 to %d) of bit_vector(7 downto 0);\n"
+      "constant INITB : bit_vector(0 to %d) := x\"",
+      blocklen-1, 8*blocklen-1);
+}
 
 
+void marek_vector_write_block(FILE *f, unsigned bytewidth, unsigned blocklen,
+    uint_fast32_t addr, const unsigned char *buf, uint_fast32_t len)
+{
+    uint_fast32_t i;
+    
+    for (i=0; i<len; i+=bytewidth) {
+        unsigned long long u = *(unsigned long long *)(&buf[i]);
+        fprintf(f, "%0*llx",2*bytewidth, u & ((1LL<<(8*bytewidth))-1));
+        addr++;
+    }
+    while ( i < blocklen) {
+	    fprintf(f, "00");
+	    addr++;
+	    i++;
+    }
+}
+
+
+void marek_vector_write_suffix(FILE *f, unsigned bytewidth, unsigned blocklen)
+{
+    fprintf(f, "\";\n"
+"function init_mem(content : bit_vector) return MEM;\n"
+"constant INITA : MEM := init_mem(INITB);\n"
+"END dmem_content;\n\n"
+
+"package body dmem_content is\n"
+"    function init_mem(content : bit_vector) return MEM is\n"
+"        variable tmp : MEM;\n"
+"        variable i : integer := 0;\n"
+"        variable j : integer := 0;\n"
+"        begin\n"
+"            for X in content\'range loop\n"
+"                tmp(i)(7-j) := content(X);\n"
+"                j := j + 1;\n"
+"                if (j = 8) then\n"
+"                    i := i + 1;\n"
+"                    j := 0;\n"
+"                end if;\n"
+"            end loop;\n"
+"            return tmp;\n"
+"    end function;\n"
+"end package body;");
+
+}
 
 
 
@@ -300,6 +355,9 @@ void write_prefix(FILE *f, unsigned bytewidth, unsigned blocklen)
         case OF_MAREK_ARRAY:
             marek_array_write_prefix(f, bytewidth, blocklen);
             break;
+	case OF_MAREK_VECTOR:
+            marek_vector_write_prefix(f, bytewidth, blocklen);
+            break;
     }
 }
 
@@ -316,6 +374,9 @@ void write_block(FILE *f, unsigned bytewidth, unsigned blocklen,
         case OF_MAREK_ARRAY:
             marek_array_write_block(f, bytewidth, blocklen, addr, buf, len);
             break;
+	case OF_MAREK_VECTOR:
+            marek_vector_write_block(f, bytewidth, blocklen, addr, buf, len);
+            break;
         case OF_ALTERA_HEX:
         default:
             altera_hex_write_block(f, bytewidth, blocklen, addr, buf, len);
@@ -327,6 +388,9 @@ void write_suffix(FILE *f, unsigned bytewidth, unsigned blocklen)
     switch (output_format) {
         case OF_MAREK_ARRAY:
             marek_array_write_suffix(f, bytewidth, blocklen);
+            break;
+	case OF_MAREK_VECTOR:
+            marek_vector_write_suffix(f, bytewidth, blocklen);
             break;
     }
 }
@@ -442,6 +506,9 @@ int main(int argc, char *argv[])
     } else if (strcmp(argv[i], "-M")==0) {
         output_format = OF_MAREK_ARRAY;
         i++;
+    } else if (strcmp(argv[i], "-V")==0) {
+	output_format = OF_MAREK_VECTOR;
+	i++;
     }
     
     if (argc>=i+3)
