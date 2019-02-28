@@ -453,7 +453,6 @@ instruction_class_t armv3_execute_iw(node_t *node, uint_fast32_t iw)
                     case 0x01000000: addr = REGn-ofs; break;
                     case 0x01200000: addr = REGn-ofs; REGn = REGn-ofs; break;
                     case 0x01800000: addr = REGn+ofs; break;
-                    default:
                     case 0x01a00000: addr = REGn+ofs; REGn = REGn+ofs; break;
                 }
                 switch (iw&0x00500000) {
@@ -481,7 +480,6 @@ instruction_class_t armv3_execute_iw(node_t *node, uint_fast32_t iw)
                     case 0x01000000: addr = REGn-4*len; break; // pre decrement
                     case 0x01200000: addr = REGn-4*len;   REGn = REGn-4*len; break;
                     case 0x01800000: addr = REGn+4; break; // pre increment
-                    default:
                     case 0x01a00000: addr = REGn+4;       REGn = REGn+4*len; break;
                 }
                 uint32_t first_addr = addr;

@@ -25,11 +25,14 @@
 #include "pnbe1_context.h"
 #include "pnbe2_context.h"
 #include "caerus_context.h"
-#include "pnoa_context.h"
+#include "pnoa0_context.h"
+#include "pnoa1_context.h"
 #include "pnaa_context.h"
 //#include "paternoster_context.h"
 //#include "gs_one_to_one_context.h"
 
+
+#include "statistic.h"
 
 // ---------------------------------------------------------------------
 // Currently not core-dependent, but possible enhancement
@@ -72,20 +75,23 @@
 
 
 // NoC types
-#define NT_fixedlat     0
-#define NT_manhattan    1
-#define NT_pnbe0        2
-#define NT_pnbe1        10
-#define NT_pnbe2        9
-#define NT_caerus       8
-#define NT_pnoa         5
-#define NT_pnaa         7
-#define NT_pnjm0        20
-#define NT_pnconfig     19
-#define NT_minbd        18
-#define NT_perfect      17
-#define NT_debug        16
-
+enum {
+    NT_fixedlat,
+    NT_manhattan,
+    NT_pnbe0,
+    NT_pnbe1,
+    NT_pnbe2,
+    NT_caerus,
+    NT_pnoa0,
+    NT_pnoa1,
+    NT_pnaa,
+    NT_pnoo,
+    NT_pnjm0,
+    NT_pnconfig,
+    NT_minbd,
+    NT_perfect,
+    NT_debug
+};
 
 #define NT_paternoster_skeleton			1
 #define NT_gs_one_to_one				3
@@ -107,14 +113,19 @@
 typedef struct node_s {
     uint_fast32_t       state;
     cycle_t             cycle;
+    cycle_t             exit_cycle;     // cycle-counter at exit
     cycle_t             retired;        // # retired instructions
     rank_t              rank;           // id of the core
     addr_t              pc;             // program counter
     addr_t              nextpc;         // pc after execution of the current instruction
     uint_fast32_t       instruction_word; // only set if unknown after execute
 
+    uint64_t            cycle_offset_next_instr;
+    
     // pseudo random number generator
     uint64_t            seed[2];
+    
+    statistic_t         stats;
 
     // memory
     uint_fast16_t       memory_type;
@@ -133,9 +144,17 @@ typedef struct node_s {
 
     // network interface
     bool (*noc_send_flit)(struct node_s*, rank_t, flit_t);
+    bool (*noc_send_ready)(struct node_s*, rank_t);
+    bool (*noc_dest_ready)(struct node_s*, rank_t);
     bool (*noc_recv_flit)(struct node_s*, rank_t, flit_t*);
+    
+    void (*noc_init_barrier)(struct node_s*, rank_t start, rank_t end);
+    bool (*noc_check_barrier)(struct node_s*);
+    
+    
     bool (*noc_sender_ready)(struct node_s*);
     bool (*noc_probe_rank)(struct node_s*, rank_t);
+    
     rank_t (*noc_probe_any)(struct node_s*);
     void (*noc_route_one_cycle)(struct node_s*);
 
@@ -146,7 +165,6 @@ typedef struct node_s {
     // cores
     uint_fast16_t       core_type;
     instruction_class_t (*one_cycle)(struct node_s*);
-    void                (*set_argv)(struct node_s*, int, char*);
     union {
         // each supported core must be added here
 //        tricore_context_t       tricore;

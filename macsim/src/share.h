@@ -8,7 +8,6 @@
 #define _SHARE_H
 
 
-
 // ---------------------------------------------------------------------
 // general 
 // ---------------------------------------------------------------------
@@ -27,18 +26,6 @@ typedef uint32_t uint16_min_t;
 typedef int64_t int64_min_t;
 typedef int32_t int32_min_t;
 typedef int32_t int16_min_t;
-
-typedef union {
-    int32_t i;
-    uint32_t u;
-    float f;
-} uf32_t;
-
-typedef union {
-    int64_t i;
-    uint64_t u;
-    double f;
-} uf64_t;
 
 
 
@@ -114,7 +101,7 @@ extern rank_t conf_noc_height;
 
 #define X_FROM_RANK(r) ((r)%conf_noc_width)
 #define Y_FROM_RANK(r) ((r)/conf_noc_width)
-
+#define RANK_FROM_XY(x, y) (((y + conf_noc_width) % conf_noc_width) * conf_noc_width + ((x + conf_noc_width) % conf_noc_width))
 
 // for configurable PaterNoster
 extern unsigned conf_bypass_y;
@@ -166,25 +153,6 @@ typedef struct flit_queue_entry_s
 // ---------------------------------------------------------------------
 // simulator logging output
 // ---------------------------------------------------------------------
-
-#define ANSI_BLACK              "\033[1;30m"
-#define ANSI_RED                "\033[0;31m"
-#define ANSI_GREEN              "\033[0;32m"
-#define ANSI_YELLOW             "\033[0;33m"
-#define ANSI_BLUE               "\033[0;34m"
-#define ANSI_MAGENTA            "\033[0;35m"
-#define ANSI_CYAN               "\033[0;36m"
-#define ANSI_WHITE              "\033[0;37m"
-#define ANSI_BRIGHT_BLACK       "\033[1;30m"
-#define ANSI_BRIGHT_RED         "\033[1;31m"
-#define ANSI_BRIGHT_GREEN       "\033[1;32m"
-#define ANSI_BRIGHT_YELLOW      "\033[1;33m"
-#define ANSI_BRIGHT_BLUE        "\033[1;34m"
-#define ANSI_BRIGHT_MAGENTA     "\033[1;35m"
-#define ANSI_BRIGHT_CYAN        "\033[1;36m"
-#define ANSI_BRIGHT_WHITE       "\033[1;37m"
-#define ANSI_NONE               "\033[0m"
-
 
 #define LOG_LEVEL_OFF		4
 #define LOG_LEVEL_WARNING	3

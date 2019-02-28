@@ -1,4 +1,4 @@
-/** 
+/**
  * $Id: node.h 346 2012-08-09 14:50:27Z mischejo $
  * Declare a node with all possible core implementations
  *
@@ -22,8 +22,10 @@
 #include "pnbe1.h"
 #include "pnbe2.h"
 #include "caerus.h"
-#include "pnoa.h"
+#include "pnoa0.h"
+#include "pnoa1.h"
 #include "pnaa.h"
+#include "one_to_one/pnoo.h"
 //#include "paternoster.h"
 //#include "gs_one_to_one.h"
 //#include "gs_one_to_one_dyn.h"
@@ -38,7 +40,7 @@
 
 
 
-uint64_t xorshift128plus_next(uint64_t *seed) 
+uint64_t xorshift128plus_next(uint64_t *seed)
 {
     uint64_t a = seed[0];
     uint64_t b = seed[1];
@@ -46,7 +48,7 @@ uint64_t xorshift128plus_next(uint64_t *seed)
     uint64_t c = a ^ b ^ (a >> 18) ^ (b >> 5);
     seed[0] = b;
     seed[1] = c;
-    return c + b; 
+    return c + b;
 }
 
 
@@ -81,17 +83,14 @@ uint64_t node_rand64(node_t *node)
 }
 
 
-void dont_set_argv(node_t *node, int argc, char *argv)
-{
-}
-
 
 
 // Init the memory
 void core_init_context(node_t *node)
 {
     node->bp_addr = NO_BREAKPOINT;
-    node->set_argv = dont_set_argv;
+    node->cycle_offset_next_instr = 0;
+    statistic_init(&node->stats);
 
     switch (node->core_type) {
 //        case CT_tricore:    tricore_init_context(node); break;
@@ -131,6 +130,7 @@ void core_init_all(node_t *nodes[], rank_t max_rank)
 // Remove context from memory and free memory blocks
 void core_finish_context(node_t *node)
 {
+    statistic_free(&node->stats);
     switch (node->core_type) {
         case CT_armv3:          armv3_finish_context(node); break;
         case CT_armv6m:         armv6m_finish_context(node); break;
@@ -198,14 +198,34 @@ void noc_init_all(node_t *nodes[], uint_fast16_t type, rank_t width, rank_t heig
     for (i=0; i<height*width; i++) {
         node_t *n = nodes[i];
         n->noc_type = type;
-        switch (type){
-            case NT_fixedlat:   fixedlat_init(n); break;
-            case NT_pnbe0:      pnbe0_init(n); break;
-            case NT_pnbe1:      pnbe1_init(n); break;
-            case NT_pnbe2:      pnbe2_init(n); break;
-            case NT_caerus:     caerus_init(n); break;
-            case NT_pnoa:       pnoa_init(n); break;
-            case NT_pnaa:       pnaa_init(n); break;
+        switch (type) {
+        case NT_fixedlat:
+            fixedlat_init(n);
+            break;
+        case NT_pnbe0:
+            pnbe0_init(n);
+            break;
+        case NT_pnbe1:
+            pnbe1_init(n);
+            break;
+        case NT_pnbe2:
+            pnbe2_init(n);
+            break;
+        case NT_caerus:
+            caerus_init(n);
+            break;
+        case NT_pnoa0:
+            pnoa0_init(n);
+            break;
+        case NT_pnoa1:
+            pnoa1_init(n);
+            break;
+        case NT_pnaa:
+            pnaa_init(n);
+            break;
+        case NT_pnoo:
+            pnoo_init(n);
+            break;
 //            case NT_paternoster_skeleton:       paternoster_init(node); break;
 //            case NT_gs_one_to_one:              gs_one_to_one_init(node); break;
 //            case NT_gs_one_to_one_dyn:          gs_one_to_one_dyn_init(node); break;
@@ -228,25 +248,28 @@ void noc_init_all(node_t *nodes[], uint_fast16_t type, rank_t width, rank_t heig
     for (y=0; y<height; y++) {
         for (x=0; x<width; x++) {
             node_t *me = nodes[y*width+x];
-            node_t *n = (y==0 
-                ? nodes[(height-1)*width+x]
-                : nodes[     (y-1)*width+x]);
+            node_t *n = (y==0
+                         ? nodes[(height-1)*width+x]
+                         : nodes[     (y-1)*width+x]);
             node_t *s = (y==height-1
-                ? nodes[x]
-                : nodes[(y+1)*width+x]);
+                         ? nodes[x]
+                         : nodes[(y+1)*width+x]);
             node_t *w = (x==0
-                ? nodes[y*width+width-1]
-                : nodes[y*width+x-1]);
+                         ? nodes[y*width+width-1]
+                         : nodes[y*width+x-1]);
             node_t *e = (x==width-1
-                ? nodes[y*width]
-                : nodes[y*width+x+1]);
-            switch (type){
-                case NT_pnjm0:
-                    pnjm0_connect(me, x, y, n, s, w, e); break;
-                case NT_pnconfig:
-                    pnconfig_connect(me, x, y, n, s, w, e); break;
-                case NT_minbd:
-                    minbd_connect(me, x, y, n, s, w, e); break;
+                         ? nodes[y*width]
+                         : nodes[y*width+x+1]);
+            switch (type) {
+            case NT_pnjm0:
+                pnjm0_connect(me, x, y, n, s, w, e);
+                break;
+            case NT_pnconfig:
+                pnconfig_connect(me, x, y, n, s, w, e);
+                break;
+            case NT_minbd:
+                minbd_connect(me, x, y, n, s, w, e);
+                break;
             }
         }
     }
@@ -260,14 +283,34 @@ void noc_destroy_all(node_t *nodes[], rank_t max_rank)
     unsigned nt = nodes[0]->noc_type;
     for (i=0; i<max_rank; i++) {
         node_t *n = nodes[i];
-        switch(n->noc_type){
-            case NT_fixedlat:   fixedlat_destroy(n); break;
-            case NT_pnbe0:      pnbe0_destroy(n); break;
-            case NT_pnbe1:      pnbe1_destroy(n); break;
-            case NT_pnbe2:      pnbe2_destroy(n); break;
-            case NT_caerus:     caerus_destroy(n); break;
-            case NT_pnoa:       pnoa_destroy(n); break;
-            case NT_pnaa:       pnaa_destroy(n); break;
+        switch(n->noc_type) {
+        case NT_fixedlat:
+            fixedlat_destroy(n);
+            break;
+        case NT_pnbe0:
+            pnbe0_destroy(n);
+            break;
+        case NT_pnbe1:
+            pnbe1_destroy(n);
+            break;
+        case NT_pnbe2:
+            pnbe2_destroy(n);
+            break;
+        case NT_caerus:
+            caerus_destroy(n);
+            break;
+        case NT_pnoa0:
+            pnoa0_destroy(n);
+            break;
+        case NT_pnoa1:
+            pnoa1_destroy(n);
+            break;
+        case NT_pnaa:
+            pnaa_destroy(n);
+            break;
+        case NT_pnoo:
+            pnoo_destroy(n);
+            break;
 //            case NT_paternoster_skeleton:       paternoster_destroy(n); break;
 //            case NT_gs_one_to_one:              gs_one_to_one_destroy(n); break;
 //            case NT_gs_one_to_one_dyn:          gs_one_to_one_dyn_destroy(n); break;
@@ -283,9 +326,15 @@ void noc_destroy_all(node_t *nodes[], rank_t max_rank)
 
     // print statistics
     switch(nt) {
-        case NT_pnjm0:          pnjm0_print_stat(); break;
-        case NT_pnconfig:       pnconfig_print_stat(); break;
-        case NT_minbd:          minbd_print_stat(); break;
+    case NT_pnjm0:
+        pnjm0_print_stat();
+        break;
+    case NT_pnconfig:
+        pnconfig_print_stat();
+        break;
+    case NT_minbd:
+        minbd_print_stat();
+        break;
     }
 }
 
@@ -315,33 +364,49 @@ void noc_print_context(node_t *nodes[], rank_t max_rank)
 {
     // router type must be identical for all nodes
     switch(nodes[0]->noc_type) {
-        case NT_pnjm0:          pnjm0_print_context(nodes, max_rank); break;
-        case NT_pnconfig:       pnconfig_print_context(nodes, max_rank); break;
-        case NT_minbd:          minbd_print_context(nodes, max_rank); break;
-        case NT_manhattan:      manhattan_print_context(nodes, max_rank); break;
+    case NT_pnjm0:
+        pnjm0_print_context(nodes, max_rank);
+        break;
+    case NT_pnconfig:
+        pnconfig_print_context(nodes, max_rank);
+        break;
+    case NT_minbd:
+        minbd_print_context(nodes, max_rank);
+        break;
+    case NT_manhattan:
+        manhattan_print_context(nodes, max_rank);
+        break;
 
-        default:
-            user_printf("Not supported for this NoC\n");
+    default:
+        user_printf("Not supported for this NoC\n");
     }
 }
 
 void noc_dump_context(const char *file, node_t *nodes[], rank_t max_rank)
 {
     switch(nodes[0]->noc_type) {
-        case NT_pnconfig:       pnconfig_dump_context(file, nodes, max_rank); break;
+    case NT_pnconfig:
+        pnconfig_dump_context(file, nodes, max_rank);
+        break;
 
-        default:
-            user_printf("Not supported for this NoC\n");
+    default:
+        user_printf("Not supported for this NoC\n");
     }
 }
 
 void noc_log_traffic(const char *file, node_t *nodes[], rank_t max_rank)
 {
-    switch(nodes[0]->noc_type){
-        case NT_pnconfig:       pnconfig_log_traffic(file, nodes, max_rank); break;
+    switch(nodes[0]->noc_type) {
+    case NT_pnconfig:
+        pnconfig_log_traffic(file, nodes, max_rank);
+        break;
 
-        default:
-            user_printf("log_traffic is not supported for this NoC variant\n");
+    default:
+        user_printf("log_traffic is not supported for this NoC variant\n");
     }
 }
+
+
+
+
 

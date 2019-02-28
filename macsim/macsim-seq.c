@@ -8,6 +8,7 @@
 #include <time.h>
 #include <math.h>
 #include <sys/stat.h> // for mkdir()
+#include "string_map.h"
 
 #define MAX_INPUT_LINE 1024
 
@@ -55,32 +56,6 @@ node_t *nodes[MAX_RANK];	// list of all nodes
 uint_fast16_t conf_noc_type;     // type of the NoC
 
 
-
-void set_client_arguments(char *argstr)
-{
-    size_t len = strlen(argstr)+1;
-    char argbuf[len+1];
-
-    int argc=0, i=0, j=0;
-    char ch = argstr[i++];
-    while (i<len) {
-        while ((i<len) && ((ch==' ') || (ch=='\t')))
-            ch = argstr[i++];
-        argc++;
-        while ((i<len) && ((ch!=' ') && (ch!='\t'))) {
-            argbuf[j++] = ch;
-            ch = argstr[i++];
-        }
-        argbuf[j++] = 0;
-    }
-
-    rank_t r;
-    for (r=0; r<conf_max_rank; r++) {
-        nodes[r]->set_argv(nodes[r], argc, argbuf);
-    }
-}
-
-
 // Print reason why the process was stopped and return core state
 uint_fast32_t reason_for_stop(node_t *node)
 {
@@ -106,32 +81,50 @@ uint_fast32_t reason_for_stop(node_t *node)
 // Simulate one instruction
 // return the number of cycles that it takes
 //
-// FIXME: Should node->cycle be also incremented if node was stopped?
+// FIXME: Should node->cycle be also incremented if node was stopped? yes
 //        Save stop time in seperate variable?
 void simulate_one_instruction(node_t *node)
 {
     uint_fast32_t cs = node->state;
 
+    if ((node->rank ) == 0) {
+//         printf("%ld: %ld %ld\n", node->rank, node->cycle, node->pc);
+    }
+
+    if (node->rank == 0) {
+//         printf("%ld\n", node->cycle);
+    }
     if (cs>CS_RUNNING) {        // multicycle instruction
         node->cycle++;
+        node->exit_cycle++;
         node->state = cs-1;
         if (cs==CS_RUNNING+1) node->pc = node->nextpc;
     } else if (CS_READY(cs)) {
         instruction_class_t ic = node->one_cycle(node);
-
+        
         // Timing
         if (ic>0) {
+            statistic_insert_instr(&node->stats, node->pc, ic);
             if (ic==1) node->pc = node->nextpc;
             node->cycle++;
+            node->exit_cycle++;
             node->state = CS_RUNNING-1+ic; // store multiple cycles in state
         } else if (ic==IC_BLOCKED) {
+            statistic_insert_instr(&node->stats, node->pc, 1);
             // If send or receive blocks, don't increase the PC.
             // Thereby the instruction is executed again and again, until
             // the blocking is over.
             node->cycle++;
+            node->exit_cycle++;
         } else if (ic==IC_STOP) {
             reason_for_stop(node);
         } else fatal("Unknown instruction class %d.", ic);
+    } else {
+        //continue to increase clock
+        //this is very important for the noc, because
+        //the local execution may be finished, but the noc
+        //needs to work until all flits were transported
+        node->cycle++;
     }
 }
 
@@ -166,6 +159,7 @@ uint_fast64_t get_timestamp()
 // Simulate all cores and the periodical interconnect
 void simulation()
 {
+    bool ready[conf_max_rank];
     rank_t r;
     cycle_t min=CYCLE_T_MAX;
     cycle_t max=0;
@@ -184,10 +178,10 @@ void simulation()
             if ((nodes[0]->cycle & ((1<<LOG_PERIOD)-1))==0) {
                 uint_fast64_t now = get_timestamp();
                 fprintf(stderr, "%lu cyc/s %lu Mcyc",
-                    ((1<<LOG_PERIOD)*1000000000L) / (now-timestamp),
-                    nodes[0]->cycle / 1000000L );
+                        ((1<<LOG_PERIOD)*1000000000L) / (now-timestamp),
+                        nodes[0]->cycle / 1000000L );
 
-netrace_print_context(nodes[0]);
+                netrace_print_context(nodes[0]);
 
                 timestamp = now;
             }
@@ -199,7 +193,11 @@ netrace_print_context(nodes[0]);
     for (r=0; r<conf_max_rank; r++)
     {
         // determine, which cores are still running
-        if (CS_READY(nodes[r]->state)) {
+        if (!CS_READY(nodes[r]->state)) {
+            ready[r] = 0;
+        } else {
+            ready[r] = 1;
+
             cycle_t c = nodes[r]->cycle;
             if (c<min) min=c;
             if (c>max) max=c;
@@ -256,7 +254,7 @@ double print_one_point(double injrate, double *latency)
     double real_injrate = (double)count / (double)(conf_eval_cycles*conf_max_rank);
     *latency = (double)total / (double)count;
     core_printf(0, "%.7f %.7f %7.1f %lu %lu\n",
-        injrate, real_injrate, *latency, count, total);
+                injrate, real_injrate, *latency, count, total);
 
     return real_injrate;
 }
@@ -293,7 +291,7 @@ void latency_vs_throughput()
         desired_ir += step;
         ir = print_one_point(desired_ir, &lat);
         if (rise_ir==0.0 && (lat > 2.0*prev_lat)) rise_ir = desired_ir-step;
-            // remember the injrate, if significant rise of latency
+        // remember the injrate, if significant rise of latency
     }
     if (rise_ir==0.0) rise_ir = desired_ir-step;
 
@@ -367,9 +365,10 @@ bool redirect_stream(FILE **stream, char *filename)
     return 1;
 }
 
-void long_to_binary(int64_t value,char *binary){
+void long_to_binary(int64_t value,char *binary)
+{
     int i;
-    for(i=0; i<64; i++){
+    for(i=0; i<64; i++) {
         if((value & 0x01) != 0)
             binary[63-i] = '1';
         else
@@ -466,9 +465,9 @@ void process_line(char command, char *argument)
             if (count<1) // 0 or -1
                 from = last_dump_addr_end;
             if (from<0xffffffc0)
-        	to = from+0x3f;
-    	    else
-        	to = 0xffffffff;
+                to = from+0x3f;
+            else
+                to = 0xffffffff;
         }
         if (to < from)
             user_printf("End ahead of beginning!\n");
@@ -516,8 +515,8 @@ void process_line(char command, char *argument)
         duration = clock() - duration;
         if ((duration/CLOCKS_PER_SEC)>0)
             user_printf("Simulation took %.1fs, %ld cycles/s\n",
-                    (double)duration/(double)CLOCKS_PER_SEC,
-                    (node->cycle*CLOCKS_PER_SEC) / duration);
+                        (double)duration/(double)CLOCKS_PER_SEC,
+                        (node->cycle*CLOCKS_PER_SEC) / duration);
         break;
     }
 
@@ -526,9 +525,8 @@ void process_line(char command, char *argument)
             "Configuration\n"
             "A [name]      set ISA of all cores (armv6m, riscv)\n"
             "I [float]     set injection rate for synthetic traffic patters\n"
-            "R [name]      set routing algorithm (fixedlat, pnbe0, pnbe1, "
-                            "pnbe2, caerus, pnoa, pnaa, pnoo, pnood, pnbase, "
-                            "pnjm0)\n"
+            "R [name]      set routing algorithm (fixedlat, pnbe0, pnbe1, pnbe2, caerus, \n"
+            "              pnoa0, pnoa1, pnaa, pnoo, pnood, pnbase, pnjm0)\n"
             "N [rank]      set number of cores (e.g. 64 or 8x8)\n"
 
             "\nDebugging\n"
@@ -586,11 +584,11 @@ void process_line(char command, char *argument)
         break;
 
     case 'm': // redirect output of current core to extra file
-			if (redirect_stream(&streams[node->rank], argument))
-			{
-				use_file_stream[node->rank] = true;
-				user_printf("Set output to %s for core %d\n", argument,node->rank);
-			}
+        if (redirect_stream(&streams[node->rank], argument))
+        {
+            use_file_stream[node->rank] = true;
+            user_printf("Set output to %s for core %d\n", argument,node->rank);
+        }
         break;
 
     case 'n': // next instruction (step over calls)
@@ -627,7 +625,7 @@ void process_line(char command, char *argument)
                 total += nodes[r]->core.traffic.stat_total_latency;
             }
             printf("%lu flits injected total latency %lu average latency %g\n",
-                count, total, (double)total / (double)count);
+                   count, total, (double)total / (double)count);
         } else {
             for (r=0; r<conf_max_rank; r++) {
                 user_printf("\n=== core %02x ===\n", r);
@@ -640,13 +638,25 @@ void process_line(char command, char *argument)
     case 'q': // quit
     {
         rank_t r;
-        cycle_t exectime = 0;
+        cycle_t minExecTime = INT32_MAX;
+        cycle_t maxExecTime = 0;
+        cycle_t totalExecTime = 0;
         noc_destroy_all(nodes, conf_max_rank);
         for (r=0; r<conf_max_rank; r++) {
-            if (nodes[r]->cycle > exectime) exectime = nodes[r]->cycle;
+            if (nodes[r]->exit_cycle < minExecTime) {
+                minExecTime = nodes[r]->exit_cycle;
+            }
+            if (maxExecTime < nodes[r]->exit_cycle) {
+                maxExecTime = nodes[r]->exit_cycle;
+            }
+            totalExecTime += nodes[r]->exit_cycle;
+
             core_finish_context(nodes[r]);
         }
-        printf("\nExecution Time: %lu cycles\n", exectime);
+        printf("\nMax. Execution Time: %lu cycles\n", maxExecTime);
+        printf("Min. Execution Time: %lu cycles\n", minExecTime);
+        printf("Total Execution Time: %lu cycles\n", totalExecTime);
+        printf("Avg. Execution Time: %f cycles\n", (double)totalExecTime / conf_max_rank);
         for (r=0; r<MAX_RANK; r++) {
             free(nodes[r]);
         }
@@ -660,6 +670,63 @@ void process_line(char command, char *argument)
     case '\n': // execute one instruction (step into calls)
         simulation_step();
         core_print_context(node);
+        break;
+
+    case 'k':
+        if (!argument) {
+            printf("Usage: -k instr | traffic \n");
+            break;
+        }
+
+        if (strcmp(argument, "instr") == 0) {
+            string_map_t cycleMap;
+            string_map_init(&cycleMap);
+            printf("  %8s | %12s | %8s | %s\n", "Address", "#Executions", "#Cycles", "Instruction");
+            for (int i = 0; i < node->stats.instrs_length; i++) {
+                if (node->stats.instrs[i].hits > 0) {
+                    char dstr[MAX_DISASM_STR];
+                    memset(dstr, 0, MAX_DISASM_STR);
+                    core_disasm(node, i, dstr);
+                    printf("0x%08x | %12ld | %8ld | %s\n", i, node->stats.instrs[i].hits, node->stats.instrs[i].cycles, dstr);
+
+                    for (int j = 0; j < MAX_DISASM_STR; j++) {
+                        if (dstr[j] == ' ' || dstr[j] == '\t') {
+                            dstr[j] = '\0';
+                        }
+                    }
+                    uint64_t currentCycle = 0;
+                    string_map_get(&cycleMap, dstr, &currentCycle);
+                    string_map_insert(&cycleMap, dstr, currentCycle + node->stats.instrs[i].cycles);
+                }
+            }
+            string_map_print(&cycleMap);
+            printf("Total: %ld\n", node->exit_cycle);
+            string_map_free(&cycleMap);
+        }
+        if (strcmp(argument, "traffic") == 0) {
+            uint64_t bytesInput = 0;
+            uint64_t bytesOutput = 0;
+            for (int i = 0; i < node->stats.send_flits_length; i++) {
+                if (node->stats.send_flits[i] > 0) {
+                    printf("%ld --> %d: %d flits\n", node->rank, i, node->stats.send_flits[i]);
+                    bytesOutput += node->stats.send_flits[i];
+                }
+            }
+            for (int i = 0; i < node->stats.recv_flits_length; i++) {
+                if (node->stats.recv_flits[i] > 0) {
+                    printf("%d --> %ld: %d flits\n", i, node->rank, node->stats.recv_flits[i]);
+                    bytesInput += node->stats.recv_flits[i];
+                }
+            }
+
+            bytesInput *= 8;
+            bytesOutput *= 8;
+
+            printf("Bandwidth:\n");
+            printf("Input:  %9ld Bytes | %9.3f Byte/Cycle\n", bytesInput, (double)bytesInput / node->exit_cycle);
+            printf("Output: %9ld Bytes | %9.3f Byte/Cycle\n", bytesOutput, (double)bytesOutput / node->exit_cycle);
+
+        }
         break;
 
     case 's': // execute n instruction (step into calls)
@@ -680,7 +747,7 @@ void process_line(char command, char *argument)
                     if (command=='s') core_print_context(node);
                 } else {
                     user_printf("error: cannot simulate %d cycles. "
-                        "Use cycle count larger than 0.\n", cycles);
+                                "Use cycle count larger than 0.\n", cycles);
                 }
             }
         } else {
@@ -702,33 +769,33 @@ void process_line(char command, char *argument)
             if (count<1) // 0 or -1
                 from = last_disasm_addr_end;
             if (from<0xffffffc0)
-        	to = from+0x1f;
-    	    else
-        	to = 0xffffffff;
+                to = from+0x1f;
+            else
+                to = 0xffffffff;
         }
         if (to < from)
             user_printf("End ahead of beginning!\n");
         else
         {
-	    char dstr[MAX_DISASM_STR];
+            char dstr[MAX_DISASM_STR];
             last_disasm_addr_end = from;
             while (last_disasm_addr_end <= to)
             {
-        	int i, len;
-        	uint8_t buf[MAX_BYTES_PER_INSTRUCTION];
-        	memory_read(node, last_disasm_addr_end, buf, MAX_BYTES_PER_INSTRUCTION);
-        	len = core_disasm(node, last_disasm_addr_end, dstr);
-        	printf("%8x: ", (unsigned)last_disasm_addr_end);
-        	for (i=0; i<MAX_BYTES_PER_INSTRUCTION; i++)
-        	{
-        	    if (i<len)
-        		printf("%02x", buf[i]);
-        	    else
-        		printf("  ");
-        	}
-        	printf("\t%s\n", dstr);
-        	last_disasm_addr_end += len;
-    	    }
+                int i, len;
+                uint8_t buf[MAX_BYTES_PER_INSTRUCTION];
+                memory_read(node, last_disasm_addr_end, buf, MAX_BYTES_PER_INSTRUCTION);
+                len = core_disasm(node, last_disasm_addr_end, dstr);
+                printf("%8x: ", (unsigned)last_disasm_addr_end);
+                for (i=0; i<MAX_BYTES_PER_INSTRUCTION; i++)
+                {
+                    if (i<len)
+                        printf("%02x", buf[i]);
+                    else
+                        printf("  ");
+                }
+                printf("\t%s\n", dstr);
+                last_disasm_addr_end += len;
+            }
         }
         break;
     }
@@ -748,7 +815,7 @@ void process_line(char command, char *argument)
 //        else if (strcmp(argument, "mips32"))    ct=CT_mips32;
 //        else if (strcmp(argument, "or32"))      ct=CT_or32;
 //        else if (strcmp(argument, "patmos"))    ct=CT_patmos;
-        else if (strcmp(argument, "riscv")==0 || strcmp(argument, "rv64i")==0) {
+        else if (strcmp(argument, "riscv")==0) {
             ct=CT_riscv;
         }
         else if (strcmp(argument, "rvmpb")==0) {
@@ -841,9 +908,7 @@ void process_line(char command, char *argument)
         break;
     }
 
-    case 'P': // set command line arguments of simulated program
-        set_client_arguments(argument);
-        break;
+
 
 
     case 'R': // set NoC routing algorithm
@@ -869,21 +934,24 @@ void process_line(char command, char *argument)
             } else if (strcmp(argument, "caerus")==0) {
                 nt=NT_caerus;
                 s="Caerus";
-            } else if (strcmp(argument, "pnoa")==0) {
-                nt=NT_pnoa;
+            } else if (strcmp(argument, "pnoa0")==0) {
+                nt=NT_pnoa0;
                 s="PaterNoster One-to-All";
+            } else if (strcmp(argument, "pnoa1")==0) {
+                nt=NT_pnoa1;
+                s="PaterNoster One-to-All (incl. receive READY in hardware)";
             } else if (strcmp(argument, "pnaa")==0) {
                 nt=NT_pnaa;
                 s="PaterNoster All-to-All";
             } else if (strcmp(argument, "pnood")==0) {
-        	nt=NT_gs_one_to_one_dyn;
-        	s="PaterNoster One-to-One Dynamic buffer";
+                nt=NT_pnoo;
+                s="PaterNoster One-to-One Dynamic buffer";
             } else if (strcmp(argument, "pnoo")==0) {
-        	nt=NT_gs_one_to_one;
-        	s="PaterNoster One-to-One";
+                nt=NT_pnoo;
+                s="PaterNoster One-to-One";
             } else if (strcmp(argument, "pnbase")==0) {
-        	nt=NT_paternoster_skeleton;
-        	s="PaterNoster base";
+                nt=NT_paternoster_skeleton;
+                s="PaterNoster base";
             } else if (strcmp(argument, "pnjm0")==0) {
                 nt = NT_pnjm0;
                 s = "PaterNoster from first paper";
@@ -896,90 +964,182 @@ void process_line(char command, char *argument)
             } else if (strcmp(argument, "debug")==0) {
                 nt = NT_debug;
                 s = "Perfect NoC with debug output";
-                
-            // deprecated naming convention, will be removed soon
+
+                // deprecated naming convention, will be removed soon
             } else if (argument[0]=='C') {
                 nt = NT_pnconfig;
                 s = "Configurable PaterNoster";
                 switch (argument[1]) {
-                    case 'n': conf_bypass_y = CONF_BYPASS_NONE; break;
-                    case 'u': conf_bypass_y = CONF_BYPASS_UNBUF; break;
-                    case 'b': conf_bypass_y = CONF_BYPASS_BUF; break;
-                    case 'w': conf_bypass_y = CONF_BYPASS_2UNBUF; break;
-                    case 'd': conf_bypass_y = CONF_BYPASS_2BUF; break;
-                    default: fatal("Unknown configuration '%s'.\n", argument);
+                case 'n':
+                    conf_bypass_y = CONF_BYPASS_NONE;
+                    break;
+                case 'u':
+                    conf_bypass_y = CONF_BYPASS_UNBUF;
+                    break;
+                case 'b':
+                    conf_bypass_y = CONF_BYPASS_BUF;
+                    break;
+                case 'w':
+                    conf_bypass_y = CONF_BYPASS_2UNBUF;
+                    break;
+                case 'd':
+                    conf_bypass_y = CONF_BYPASS_2BUF;
+                    break;
+                default:
+                    fatal("Unknown configuration '%s'.\n", argument);
                 }
                 switch (argument[2]) {
-                    case 'n': conf_bypass_x = CONF_BYPASS_NONE; break;
-                    case 'u': conf_bypass_x = CONF_BYPASS_UNBUF; break;
-                    case 'b': conf_bypass_x = CONF_BYPASS_BUF; break;
-                    default: fatal("Unknown configuration '%s'.\n", argument);
+                case 'n':
+                    conf_bypass_x = CONF_BYPASS_NONE;
+                    break;
+                case 'u':
+                    conf_bypass_x = CONF_BYPASS_UNBUF;
+                    break;
+                case 'b':
+                    conf_bypass_x = CONF_BYPASS_BUF;
+                    break;
+                default:
+                    fatal("Unknown configuration '%s'.\n", argument);
                 }
                 switch (argument[3]) {
-                    case 'c': conf_stall_y = CONF_STALL_CHEAP; break;
-                    case 'e': conf_stall_y = CONF_STALL_EXP; break;
-                    default: fatal("Unknown configuration '%s'.\n", argument);
+                case 'c':
+                    conf_stall_y = CONF_STALL_CHEAP;
+                    break;
+                case 'e':
+                    conf_stall_y = CONF_STALL_EXP;
+                    break;
+                default:
+                    fatal("Unknown configuration '%s'.\n", argument);
                 }
                 switch (argument[4]) {
-                    case 'c': conf_stall_x = CONF_STALL_CHEAP; break;
-                    case 'e': conf_stall_x = CONF_STALL_EXP; break;
-                    default: fatal("Unknown configuration '%s'.\n", argument);
+                case 'c':
+                    conf_stall_x = CONF_STALL_CHEAP;
+                    break;
+                case 'e':
+                    conf_stall_x = CONF_STALL_EXP;
+                    break;
+                default:
+                    fatal("Unknown configuration '%s'.\n", argument);
                 }
                 switch (argument[5]) {
-                    case '0': conf_inject_y = CONF_INJECT_NONE; break;
-                    case 'r': conf_inject_y = CONF_INJECT_REQUEST; break;
-                    case 'a': conf_inject_y = CONF_INJECT_ALTERNATE; break;
-                    case 't': conf_inject_y = CONF_INJECT_THROTTLE; break;
-                    default: fatal("Unknown configuration '%s'.\n", argument);
+                case '0':
+                    conf_inject_y = CONF_INJECT_NONE;
+                    break;
+                case 'r':
+                    conf_inject_y = CONF_INJECT_REQUEST;
+                    break;
+                case 'a':
+                    conf_inject_y = CONF_INJECT_ALTERNATE;
+                    break;
+                case 't':
+                    conf_inject_y = CONF_INJECT_THROTTLE;
+                    break;
+                default:
+                    fatal("Unknown configuration '%s'.\n", argument);
                 }
                 switch (argument[6]) {
-                    case '0': conf_inject_x = CONF_INJECT_NONE; break;
-                    case 'r': conf_inject_x = CONF_INJECT_REQUEST; break;
-                    case 'a': conf_inject_x = CONF_INJECT_ALTERNATE; break;
-                    case 't': conf_inject_x = CONF_INJECT_THROTTLE; break;
-                    default: fatal("Unknown configuration '%s'.\n", argument);
+                case '0':
+                    conf_inject_x = CONF_INJECT_NONE;
+                    break;
+                case 'r':
+                    conf_inject_x = CONF_INJECT_REQUEST;
+                    break;
+                case 'a':
+                    conf_inject_x = CONF_INJECT_ALTERNATE;
+                    break;
+                case 't':
+                    conf_inject_x = CONF_INJECT_THROTTLE;
+                    break;
+                default:
+                    fatal("Unknown configuration '%s'.\n", argument);
                 }
 
             } else if (argument[0]=='P') {
                 nt = NT_pnconfig;
                 s = "PaterNoster best effort";
                 switch (argument[1]) {
-                    case 'N': conf_bypass_y = CONF_BYPASS_NONE; break;
-                    case 'U': conf_bypass_y = CONF_BYPASS_UNBUF; break;
-                    case 'B': conf_bypass_y = CONF_BYPASS_BUF; break;
-                    case 'W': conf_bypass_y = CONF_BYPASS_2UNBUF; break;
-                    case 'D': conf_bypass_y = CONF_BYPASS_2BUF; break;
-                    default: fatal("Unknown configuration '%s'.\n", argument);
+                case 'N':
+                    conf_bypass_y = CONF_BYPASS_NONE;
+                    break;
+                case 'U':
+                    conf_bypass_y = CONF_BYPASS_UNBUF;
+                    break;
+                case 'B':
+                    conf_bypass_y = CONF_BYPASS_BUF;
+                    break;
+                case 'W':
+                    conf_bypass_y = CONF_BYPASS_2UNBUF;
+                    break;
+                case 'D':
+                    conf_bypass_y = CONF_BYPASS_2BUF;
+                    break;
+                default:
+                    fatal("Unknown configuration '%s'.\n", argument);
                 }
                 switch (argument[2]) {
-                    case 'N': conf_bypass_x = CONF_BYPASS_NONE; break;
-                    case 'U': conf_bypass_x = CONF_BYPASS_UNBUF; break;
-                    case 'B': conf_bypass_x = CONF_BYPASS_BUF; break;
-                    default: fatal("Unknown configuration '%s'.\n", argument);
+                case 'N':
+                    conf_bypass_x = CONF_BYPASS_NONE;
+                    break;
+                case 'U':
+                    conf_bypass_x = CONF_BYPASS_UNBUF;
+                    break;
+                case 'B':
+                    conf_bypass_x = CONF_BYPASS_BUF;
+                    break;
+                default:
+                    fatal("Unknown configuration '%s'.\n", argument);
                 }
                 switch (argument[3]) {
-                    case 'G': conf_stall_y = CONF_STALL_CHEAP; break;
-                    case 'S': conf_stall_y = CONF_STALL_EXP; break;
-                    default: fatal("Unknown configuration '%s'.\n", argument);
+                case 'G':
+                    conf_stall_y = CONF_STALL_CHEAP;
+                    break;
+                case 'S':
+                    conf_stall_y = CONF_STALL_EXP;
+                    break;
+                default:
+                    fatal("Unknown configuration '%s'.\n", argument);
                 }
                 switch (argument[4]) {
-                    case 'G': conf_stall_x = CONF_STALL_CHEAP; break;
-                    case 'S': conf_stall_x = CONF_STALL_EXP; break;
-                    default: fatal("Unknown configuration '%s'.\n", argument);
+                case 'G':
+                    conf_stall_x = CONF_STALL_CHEAP;
+                    break;
+                case 'S':
+                    conf_stall_x = CONF_STALL_EXP;
+                    break;
+                default:
+                    fatal("Unknown configuration '%s'.\n", argument);
                 }
                 switch (argument[5]) {
-                    case '0': conf_inject_y = CONF_INJECT_NONE; break;
-                    case 'R': conf_inject_y = CONF_INJECT_REQUEST; break;
-                    case 'A': conf_inject_y = CONF_INJECT_ALTERNATE; break;
-                    case 'T': conf_inject_y = CONF_INJECT_THROTTLE; break;
-                    default: fatal("Unknown configuration '%s'.\n", argument);
+                case '0':
+                    conf_inject_y = CONF_INJECT_NONE;
+                    break;
+                case 'R':
+                    conf_inject_y = CONF_INJECT_REQUEST;
+                    break;
+                case 'A':
+                    conf_inject_y = CONF_INJECT_ALTERNATE;
+                    break;
+                case 'T':
+                    conf_inject_y = CONF_INJECT_THROTTLE;
+                    break;
+                default:
+                    fatal("Unknown configuration '%s'.\n", argument);
                 }
                 switch (argument[6]) {
-                    case '0': conf_inject_x = CONF_INJECT_NONE; break;
-                    case 'R': conf_inject_x = CONF_INJECT_REQUEST; break;
-                    case 'A': conf_inject_x = CONF_INJECT_ALTERNATE; break;
-                    case 'T': conf_inject_x = CONF_INJECT_THROTTLE; break;
-                    default: fatal("Unknown configuration '%s'.\n", argument);
+                case '0':
+                    conf_inject_x = CONF_INJECT_NONE;
+                    break;
+                case 'R':
+                    conf_inject_x = CONF_INJECT_REQUEST;
+                    break;
+                case 'A':
+                    conf_inject_x = CONF_INJECT_ALTERNATE;
+                    break;
+                case 'T':
+                    conf_inject_x = CONF_INJECT_THROTTLE;
+                    break;
+                default:
+                    fatal("Unknown configuration '%s'.\n", argument);
                 }
             } else {
                 user_printf("Unknown NoC '%s'.\n", argument);
@@ -994,28 +1154,28 @@ void process_line(char command, char *argument)
         user_printf("Changing NoC to %s\n", s);
         conf_noc_type = nt;
         noc_destroy_all(nodes, conf_max_rank);
-            // free memory allocated for the previous NoC
+        // free memory allocated for the previous NoC
         noc_init_all(nodes, conf_noc_type, conf_noc_width, conf_noc_height);
-            // initialize the new NoC
+        // initialize the new NoC
         break;
     }
 
-/*
-    case 'T': // load netrace file
-    {
-        rank_t r;
-        if (!argument)
+    /*
+        case 'T': // load netrace file
         {
-            user_printf("Filename expected.\n");
+            rank_t r;
+            if (!argument)
+            {
+                user_printf("Filename expected.\n");
+                break;
+            }
+            user_printf("Loading netrace from '%s'.\n", argument);
+            nt_open_trfile(argument);
+            conf_netrace_on = 1;
+            // clean all NoC buffers?
             break;
         }
-        user_printf("Loading netrace from '%s'.\n", argument);
-        nt_open_trfile(argument);
-        conf_netrace_on = 1;
-        // clean all NoC buffers?
-        break;
-    }
-*/
+    */
 
     case 'x': // run to end and store each context to a file
     {
@@ -1085,7 +1245,7 @@ void process_line(char command, char *argument)
         break;
     }
 
-    case 'X': 
+    case 'X':
         // same as -x, but use directory tree
         // run to end and store each context to a file
     {
@@ -1129,8 +1289,8 @@ void process_line(char command, char *argument)
                 }
 
                 if (!(cycle % cycle_stepsize)) {
-                    sprintf(filename, "%smacsim_cpu_%ld/%lu/cycle_%lu", 
-                        path, r, cdir, cycle);
+                    sprintf(filename, "%smacsim_cpu_%ld/%lu/cycle_%lu",
+                            path, r, cdir, cycle);
                     core_dump_context(filename, nodes[r]);
                 }
             }
@@ -1142,8 +1302,8 @@ void process_line(char command, char *argument)
                 mkdir(filename, ACCESSPERMS);
             }
             if (!(cycle % cycle_stepsize)) {
-                sprintf(filename, "%smacsim_noc/%lu/cycle_%lu", 
-                    path, cdir, cycle);
+                sprintf(filename, "%smacsim_noc/%lu/cycle_%lu",
+                        path, cdir, cycle);
                 noc_dump_context(filename, nodes, conf_max_rank);
             }
 
@@ -1179,54 +1339,52 @@ void process_line(char command, char *argument)
 
 
     case 'G':
-        {
-            unsigned n;
-            int count = sscanf(argument, "%u", &n);
-            if (count!=1) fatal("Send buffer size expected");
-            conf_send_fifo_size = n;
-            break;
-        }
+    {
+        unsigned n;
+        int count = sscanf(argument, "%u", &n);
+        if (count!=1) fatal("Send buffer size expected");
+        conf_send_fifo_size = n;
+        break;
+    }
 
     case 'H':
-        {
-            unsigned n;
-            int count = sscanf(argument, "%u", &n);
-            if (count!=1) fatal("Receive buffer size expected");
-            conf_recv_fifo_size = n;
-            break;
-        }
+    {
+        unsigned n;
+        int count = sscanf(argument, "%u", &n);
+        if (count!=1) fatal("Receive buffer size expected");
+        conf_recv_fifo_size = n;
+        break;
+    }
 
     case 'J':
-        {
-            unsigned n;
-            int count = sscanf(argument, "%u", &n);
-            if (count!=1) fatal("Corner buffer size expected");
-            conf_corner_fifo_size = n;
-            break;
-        }
+    {
+        unsigned n;
+        int count = sscanf(argument, "%u", &n);
+        if (count!=1) fatal("Corner buffer size expected");
+        conf_corner_fifo_size = n;
+        break;
+    }
 
 
     // can be removed
     case 'z':
-        {
-            int32_t cycles;
-            int count = sscanf(argument, "%d", &cycles);
-            if (count!=1) fatal("Number of ahead cycles expected");
-            NT_READ_AHEAD = cycles;
-            break;
-        }
+    {
+        int32_t cycles;
+        int count = sscanf(argument, "%d", &cycles);
+        if (count!=1) fatal("Number of ahead cycles expected");
+        NT_READ_AHEAD = cycles;
+        break;
+    }
 
     case 'y': //Run the loaded program and log core register changes
-    {   
+    {
         char path[512];
         FILE *out;
         rank_t r;
         bool all_stopped;
         int64_t all_registers[conf_max_rank*32];
-        uint64_t all_fregs[conf_max_rank*32];
-        for(r=0; r<conf_max_rank*32; r++){
+        for(r=0; r<conf_max_rank*32; r++) {
             all_registers[r] = 0;
-            all_fregs[r] = 0;
         }
         if (!argument) {
             user_printf("Output path and filename for context file expected.\n");
@@ -1237,23 +1395,26 @@ void process_line(char command, char *argument)
         if (n != 1) {
             user_printf("Expected syntax: -y \"<path>/filename\"\n");
             break;
-        } 
+        }
 
         out = fopen(path,"w");
-        if( out == NULL){
+        if( out == NULL) {
             fatal("Could not open the specified log file");
         }
         fclose(out);
         // While a core is still running, simulate one step and log register changes
         cycle_t cy = 0;
+
+        out = fopen(path,"a");
+        if( out == NULL) {
+            fatal("Could not open the specified log file");
+        }
+
         do {
             // Simulate one step
             simulation_step();
-            
-            out = fopen(path,"a");
-            if( out == NULL){
-                fatal("Could not open the specified log file");
-            }
+
+
             fprintf(out,"\n#%lu\n",cy);
             cy++;
             // Log registers
@@ -1267,38 +1428,33 @@ void process_line(char command, char *argument)
                 //   0x6f jar
                 //   0x03 ld
                 //   0x07 fld
-                if ((nodes[r]->state <= CS_RUNNING) 
-                    || ((nodes[r]->instruction_word&0x73)==0x63)
-                    || ((nodes[r]->instruction_word&0x7b)==0x03))
-                { 
+                if ((nodes[r]->state <= CS_RUNNING)
+                        || ((nodes[r]->instruction_word&0x73)==0x63)
+                        || ((nodes[r]->instruction_word&0x7b)==0x03))
+                {
                     // don't dump during stalls
                     int i;
-                    for(i=1; i<32; i++){	// ignore the content of reg0
-                        if(nodes[r]->core.riscv.reg[i] != all_registers[r*32+i]){
+//                    char binary[64];
+                    for(i=1; i<32; i++) {	// ignore the content of reg0
+                        if(nodes[r]->core.riscv.reg[i] != all_registers[r*32+i]) {
+//                            long_to_binary(nodes[r]->core.riscv.reg[i], binary);
                             fprintf(out,"°%ld x%u %lx\n", r, i, nodes[r]->core.riscv.reg[i]);
                         }
                         all_registers[r*32+i] = nodes[r]->core.riscv.reg[i];
                     }
-                    for (i=0; i<32; i++) {
-                        uf64_t x;
-                        x.f = nodes[r]->core.riscv.freg[i];
-                        if (x.u != all_fregs[r*32+i]) {
-                            fprintf(out,"°%ld f%u %lx\n", r, i, x.u);
-                        }
-                        all_fregs[r*32+i] = x.u;
-                    }
                 }
             }
-            fclose(out);
             // Check if a core is still running
             all_stopped = true;
-            for(r=0;r<conf_max_rank;r++){
+            for(r=0; r<conf_max_rank; r++) {
                 if (CS_READY(nodes[r]->state)) {
                     all_stopped = false;
                     break;
                 }
             }
         } while(!all_stopped);
+
+        fclose(out);
 
         break;
     }
@@ -1319,13 +1475,14 @@ int main(int argc, char *argv[])
     init_streaming();
     conf_inj_rate = 0.1;
     conf_inj_prob = llrint(0x1.0p64 * conf_inj_rate);
-    conf_max_rank = 4;
+    conf_max_rank = 1024;
     conf_noc_width = 2;
     conf_noc_height = 2;
-    conf_noc_type = NT_perfect;
+    conf_noc_type = NT_pnoo;
     conf_send_fifo_size = 8;
     conf_recv_fifo_size = 8;
     conf_corner_fifo_size = 8;
+
     for (r=0; r<MAX_RANK; r++)
     {
         nodes[r] = malloc(sizeof(node_t));
@@ -1333,7 +1490,7 @@ int main(int argc, char *argv[])
     }
     for (r=0; r<conf_max_rank; r++)
     {
-        nodes[r]->core_type = CT_armv6m;
+        nodes[r]->core_type = CT_riscv;
     }
     core_init_all(nodes, conf_max_rank);
 
@@ -1351,12 +1508,12 @@ int main(int argc, char *argv[])
                    "Usage: %s [-<commands>]\n", argv[0]);
             return 1;
         }
-        
+
         // deal with spaces between command and arguments, ie "-a foo.elf"
         if (s[2]==0 && i+1<argc && argv[i+1][0]!='-')
-    	    process_line(s[1], argv[++i]);
-    	else
-    	    process_line(s[1], trim_whitespace(s+2));
+            process_line(s[1], argv[++i]);
+        else
+            process_line(s[1], trim_whitespace(s+2));
     }
 
     // react on user input

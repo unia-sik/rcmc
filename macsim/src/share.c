@@ -78,9 +78,9 @@ void warning(int log_level, const char *fmt, ...)
     va_start(ap, fmt);
     if (log_level <= LOG_LEVEL_WARNING)
     {
-	fprintf(stream_err, ANSI_BRIGHT_BLACK "MacSim WARNING: ");
+	fprintf(stream_err, "WARNING: ");
 	vfprintf(stream_err, fmt, ap);
-	fprintf(stream_err, "\n" ANSI_NONE);
+	fprintf(stream_err, "\n");
     }
 }
 
