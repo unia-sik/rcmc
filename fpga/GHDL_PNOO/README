@@ -1,0 +1,48 @@
+Project for PNOO with PIMP
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+0. Install:
+    - The project is optimized for the use of kdevelop. Please install it with "sudo apt-get install kdevelop"
+    - However you need to disable parallel-build. Go to Project > Open Configuration > Make and select "Override number of jobs" with "Number of sim. jobs" = 1
+
+1. Structure:
+    - build:                CMAKE-Build directory
+    - html:                 Current VHDL-Code visualized in HTML
+    - logs:                 Output directory for run_tests.sh
+    - scripts:              Multiple convert-scripts
+    - simulation:           Configuration for GTKWave and output directory from run.sh
+    - src:                  VHDL code
+    - tests:                Directory of the tests
+    - tests/src:            Test-Suite code
+    - tests/src/tests:      Test code
+    - tests/bin:            Test executables
+    
+2. Build:
+    - Run "./configure <OPTIONAL|Absolut-Path-To-Elf-File>" to setup the project structure.
+      If no argument was provided it will build all tests and the Memory-Content of the VHDL-Code
+      will be initialized with the code from the last test. However if an argument was provided,
+      it will initialize the Memory-Content with the given elf-file.
+
+    - Run "make <TARGET>" to build, convert and initialize the Memory-Content with the test 
+      specified by TARGET. Every C-file in tests/src/tests generates 3 targets:
+        - <FILE>.elf: Target for building the specific test
+        - <FILE>.vhd: Target for converting the elf-file to a vhd-file
+        - <FILE>: Target for analyzing the VHDL-Code with GHDL. This also updates the "html"-directory
+    - Run "make custom_elf" to convert and initialize the Memory-Content with the additional elf-file specified
+      by the "configure.sh" script.
+
+3. Tests:
+    - Run "./run_tests <OPTIONAL|PREFIX>" to start the test process. If an argument was provided only
+      the tests, which match the PREFIX will be performed. Otherwise all tests will be performed. A test includes the following steps:
+        - Building the test and setting the Memory-Content for VHDL. (Using make TEST-NAME)
+        - Executing the test-elf on the macsim-simulator and retrieving the cycles necessary to run the simulation.
+        - Executing GHDL
+        - Checking the GHDL-result for broken assertions and deadlocks.
+        - Comparing the result of macsim and GHDL cycle-by-cycle.
+
+4. Execute:
+    - Run "./run.sh <PATH-To-File>" to initialize the Memory-Content with the given file and to start the
+      GHDL simulation. The result will be stored in "simulation"
+      
+5. Usage:
+    Just run ./configure and ./run_tests; if everything is ok, everything is ok...
