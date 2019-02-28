@@ -1,0 +1,14 @@
+Project for perf_bench
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+0. Build:
+    - Run "./configure" to set up CMAKE and build all applications
+    - Call "make" inside the build directory to start the build-process
+    
+1. Run:
+    - Run "./run_all <OPTIONAL|PREFIX>" to run all available applications matching PREFIX. (Note: The application name is folder/elf-name e.g. app/cg)
+    Examples:
+        "./run_all app/*" runs all applications in the src/app directory
+2. Output:
+    - All output-logs are stored in the "logs"-directory with "appName_NxN.macsim.log" as the filename
