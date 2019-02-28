@@ -1,0 +1,13 @@
+Project for libutil, including libcopper, libsilver and libgold
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+0. Build:
+    - Run "./configure" to set up CMAKE and build all libaries
+    - Call "make" inside the build directory to start the build-process
+    
+1. Tests:
+    - Run "./run_tests" to run all available tests
+    - The Test-Binaries are located in the bin-directory
+2. Output:
+    - The libaries are located in the lib-directory
