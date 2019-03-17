@@ -1,0 +1,30 @@
+==========VCD-Parser==========
+
+Init: ./configure.sh
+Build: 'make' inside build/
+Usage: ./bin/vcd_parser --format=log|regdump|json|comment [--<filter>=<value>] <file.vcd>" <path_to_vcd_file>
+
+Converts a VCD file to a different output formats with different textual filters.
+A filter ignores all entries, which do not contain the filter-argument.
+
+===formats===
+--format=log               cycle: scope.signal <= value
+--format=regdump           macsim-compare-format
+--format=json              scope-structure of all signals
+--format=comment           all comments in the VCD-header
+
+===filters===
+--scope=<filter>           filter scopes
+--signal=<filter>          filter signals
+--value=<filter>           filter values
+--min-cycle=<filter>       start with cycle filter
+--max-cycle=<filter>       end with cycle filter
+
+Examples:
+./bin/vcd_parser --format=regdump --scope=reg1.reg1 --signal=reg <file.vcd>
+    Extract all changes in scopes containing "reg1.reg1" and there only the
+    signals matching "reg". This produces the compare-format for macsim.
+    
+./bin/vcd_parser --format=log --value=U <file.vcd>
+    Displays all signals with Undefined values. (Containing U)
+

@@ -15,7 +15,7 @@
  *
  */
 
-#include "pnoa.h"
+#include "pnoa0.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -27,24 +27,24 @@ extern node_t *nodes[];
 uint_fast32_t	cycle;
 
 
-void pnoa_updateInjectionQueue(node_t *node){
-	pnoa_context_t *gnode = ((pnoa_context_t *)node->noc_context); //readability
+void pnoa0_updateInjectionQueue(node_t *node){
+	pnoa0_context_t *gnode = ((pnoa0_context_t *)node->noc_context); //readability
 
 	if(gnode->in_core.flit == NULL){
 		gnode->in_core.flit = msgdeque(&gnode->injectionQueue);
 	}
 }
 
-bool pnoa_send_flit(node_t *node, rank_t dest, flit_t flit)
+bool pnoa0_send_flit(node_t *node, rank_t dest, flit_t flit)
 {
-    pnoa_updateInjectionQueue(node);
+    pnoa0_updateInjectionQueue(node);
 
     // try to enqueue the flit
     flit_container_t *fc = malloc(sizeof(flit_container_t));
     fc->src = node->rank;
     fc->dest = dest;
     memcpy(fc->payload, &flit, FLIT_LEN);
-    if (msgenque(&((pnoa_context_t *)node->noc_context)->injectionQueue, fc)) {
+    if (msgenque(&((pnoa0_context_t *)node->noc_context)->injectionQueue, fc)) {
         debug(log_intercon,"Node %lu: Flit for %lu queued\n",node->rank, dest);
         return true;
     }
@@ -52,10 +52,10 @@ bool pnoa_send_flit(node_t *node, rank_t dest, flit_t flit)
     return false;
 }
 
-bool pnoa_recv_flit(node_t *node, rank_t src, flit_t *flit)
+bool pnoa0_recv_flit(node_t *node, rank_t src, flit_t *flit)
 {
     flit_container_t *fc = msgdeque_rank(
-        &((pnoa_context_t *)node->noc_context)->core_buffer,
+        &((pnoa0_context_t *)node->noc_context)->core_buffer,
         src);
     if(fc == NULL) return false; // no flit from src found in buffer
     memcpy(flit, fc->payload, FLIT_LEN);
@@ -67,16 +67,16 @@ bool pnoa_recv_flit(node_t *node, rank_t src, flit_t *flit)
 
 
 
-bool pnoa_sender_ready(node_t *node)
+bool pnoa0_sender_ready(node_t *node)
 {
-	if(((pnoa_context_t *)node->noc_context)->injectionQueue.slots != 0)
+	if(((pnoa0_context_t *)node->noc_context)->injectionQueue.slots != 0)
 		return true;
 	return false;
 }
 
-bool pnoa_probe_rank(node_t *node, rank_t src)
+bool pnoa0_probe_rank(node_t *node, rank_t src)
 {
-	p_buffer_entry_t *entry = ((pnoa_context_t *)node->noc_context)->core_buffer.head;
+	p_buffer_entry_t *entry = ((pnoa0_context_t *)node->noc_context)->core_buffer.head;
 	while(entry != NULL){
 		if(entry->flit->src == src){
 			return true;
@@ -86,20 +86,20 @@ bool pnoa_probe_rank(node_t *node, rank_t src)
 	return false;
 }
 
-rank_t pnoa_probe_any(node_t *node)
+rank_t pnoa0_probe_any(node_t *node)
 {
-	if(((pnoa_context_t *)node->noc_context)->core_buffer.head != NULL){
-		return ((pnoa_context_t *)node->noc_context)->core_buffer.head->flit->src;
+	if(((pnoa0_context_t *)node->noc_context)->core_buffer.head != NULL){
+		return ((pnoa0_context_t *)node->noc_context)->core_buffer.head->flit->src;
 	}
 	return (rank_t)-1;
 }
 
 // Simulate the transportation of the messages for one cycle
-void pnoa_route_one_cycle(node_t *node)
+void pnoa0_route_one_cycle(node_t *node)
 {
-	pnoa_context_t *gnode = ((pnoa_context_t *)node->noc_context); //readability
+	pnoa0_context_t *gnode = ((pnoa0_context_t *)node->noc_context); //readability
 
-	pnoa_updateInjectionQueue(node);
+	pnoa0_updateInjectionQueue(node);
 
 //	if(node->cycle >=500)
 //		exit(0);
@@ -197,7 +197,7 @@ void pnoa_route_one_cycle(node_t *node)
 		for(x = 0; x < conf_max_rank; x++){	// for each node
 			// Update the input fields for next cycle
 			// fetch flits coming from south
-			((pnoa_context_t *)nodes[x]->noc_context)->in_south = ((pnoa_context_t *)nodes[(x+conf_noc_width)%conf_max_rank]->noc_context)->out_north;
+			((pnoa0_context_t *)nodes[x]->noc_context)->in_south = ((pnoa0_context_t *)nodes[(x+conf_noc_width)%conf_max_rank]->noc_context)->out_north;
 
 			//fetch flits coming from west
 			if(x%conf_noc_width == 0){			// if the node is the first in the line
@@ -205,12 +205,12 @@ void pnoa_route_one_cycle(node_t *node)
 			} else{										// if it isn't
 				y = nodes[x]->rank - 1;
 			}
-			((pnoa_context_t *)nodes[x]->noc_context)->in_west.flit = ((pnoa_context_t *)nodes[y]->noc_context)->out_east.flit;
+			((pnoa0_context_t *)nodes[x]->noc_context)->in_west.flit = ((pnoa0_context_t *)nodes[y]->noc_context)->out_east.flit;
 		}
 
 		for(x = 0; x < conf_max_rank; x++){
-			((pnoa_context_t *)nodes[x]->noc_context)->out_north.flit = NULL;
-			((pnoa_context_t *)nodes[x]->noc_context)->out_east.flit = NULL;
+			((pnoa0_context_t *)nodes[x]->noc_context)->out_north.flit = NULL;
+			((pnoa0_context_t *)nodes[x]->noc_context)->out_east.flit = NULL;
 		}
 
 		debug(log_intercon,"Schedule cycle End \n");
@@ -219,47 +219,47 @@ void pnoa_route_one_cycle(node_t *node)
 }
 
 // Init the gs_one_to_all(NoC) simulator
-void pnoa_init(node_t *node)
+void pnoa0_init(node_t *node)
 {
-    node->noc_send_flit         = pnoa_send_flit;
-    node->noc_recv_flit         = pnoa_recv_flit;
+    node->noc_send_flit         = pnoa0_send_flit;
+    node->noc_recv_flit         = pnoa0_recv_flit;
 
-	node->noc_sender_ready      = pnoa_sender_ready;
-	node->noc_probe_rank        = pnoa_probe_rank;
-	node->noc_probe_any         = pnoa_probe_any;
-	node->noc_route_one_cycle   = pnoa_route_one_cycle;
+	node->noc_sender_ready      = pnoa0_sender_ready;
+	node->noc_probe_rank        = pnoa0_probe_rank;
+	node->noc_probe_any         = pnoa0_probe_any;
+	node->noc_route_one_cycle   = pnoa0_route_one_cycle;
 
 	// add NoC specific fields to the node
-	pnoa_context_t *context = malloc(sizeof(pnoa_context_t));
+	pnoa0_context_t *context = malloc(sizeof(pnoa0_context_t));
 	if(context == NULL){
 		fatal("Malloc failed to allocate memory\n");
 	}
 	node->noc_context = context;
 
 	// initialize the just added fields
-	((pnoa_context_t *)node->noc_context)->in_south.flit = NULL;
-	((pnoa_context_t *)node->noc_context)->in_west.flit = NULL;
-	((pnoa_context_t *)node->noc_context)->in_core.flit = NULL;
-	((pnoa_context_t *)node->noc_context)->out_east.flit = NULL;
-	((pnoa_context_t *)node->noc_context)->out_north.flit = NULL;
-	((pnoa_context_t *)node->noc_context)->corner_buffer.flit = NULL;
+	((pnoa0_context_t *)node->noc_context)->in_south.flit = NULL;
+	((pnoa0_context_t *)node->noc_context)->in_west.flit = NULL;
+	((pnoa0_context_t *)node->noc_context)->in_core.flit = NULL;
+	((pnoa0_context_t *)node->noc_context)->out_east.flit = NULL;
+	((pnoa0_context_t *)node->noc_context)->out_north.flit = NULL;
+	((pnoa0_context_t *)node->noc_context)->corner_buffer.flit = NULL;
 
-	((pnoa_context_t *)node->noc_context)->roundTime = conf_noc_width*(conf_noc_width-1)+1;
-	((pnoa_context_t *)node->noc_context)->currentCycle = 0;
+	((pnoa0_context_t *)node->noc_context)->roundTime = conf_noc_width*(conf_noc_width-1)+1;
+	((pnoa0_context_t *)node->noc_context)->currentCycle = 0;
 
 	uint_fast32_t size;
 	// This sets the core buffer size
 	size = 2 * conf_noc_width*conf_noc_width;
-	buffer_init(&((pnoa_context_t *)node->noc_context)->core_buffer, 80);
+	buffer_init(&((pnoa0_context_t *)node->noc_context)->core_buffer, 80);
 	// This sets the injectionQueue size (+1)
 	size = conf_noc_width - 1;
-	buffer_init(&((pnoa_context_t *)node->noc_context)->injectionQueue, size);
+	buffer_init(&((pnoa0_context_t *)node->noc_context)->injectionQueue, size);
 
 	cycle = 0;
 
 }
 
-void pnoa_destroy(node_t *node){
+void pnoa0_destroy(node_t *node){
 	free(node->noc_context);
 }
 

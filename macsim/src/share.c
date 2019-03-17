@@ -1,4 +1,4 @@
-/** 
+/**
  * $Id: share.c 332 2012-03-22 15:59:22Z metzlast $
  * Shared definitions, constants and macros that should remain unchanged
  *
@@ -34,7 +34,7 @@ FILE *stream_err;	// errors and warnings
 FILE *stream_usr;	// output of the user interface (prompt)
 FILE *stream_log;	// logging of simulation
 FILE *stream_all;	// direct debug output of all cores intermixed
-FILE *streams[MAX_RANK]; 
+FILE *streams[MAX_RANK];
 bool use_file_stream[MAX_RANK];
 
 // logging levels (configurable)
@@ -78,9 +78,9 @@ void warning(int log_level, const char *fmt, ...)
     va_start(ap, fmt);
     if (log_level <= LOG_LEVEL_WARNING)
     {
-	fprintf(stream_err, ANSI_BRIGHT_BLACK "MacSim WARNING: ");
-	vfprintf(stream_err, fmt, ap);
-	fprintf(stream_err, "\n" ANSI_NONE);
+        fprintf(stream_err, ANSI_BRIGHT_BLACK "MacSim WARNING: ");
+        vfprintf(stream_err, fmt, ap);
+        fprintf(stream_err, "\n" ANSI_NONE);
     }
 }
 
@@ -89,8 +89,8 @@ void info(int log_level, const char *fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
-    if (log_level <= LOG_LEVEL_INFO) 
-	vfprintf(stream_log, fmt, ap);
+    if (log_level <= LOG_LEVEL_INFO)
+        vfprintf(stream_log, fmt, ap);
 }
 
 // Debug output if log_level is high enough -> stream_log
@@ -98,8 +98,8 @@ void debug(int log_level, const char *fmt, ...)
 {
     va_list ap;
     va_start(ap, fmt);
-    if (log_level <= LOG_LEVEL_DEBUG) 
-	vfprintf(stream_log, fmt, ap);
+    if (log_level <= LOG_LEVEL_DEBUG)
+        vfprintf(stream_log, fmt, ap);
 }
 
 // printf for user interface -> stream_usr
@@ -128,7 +128,7 @@ void core_printf(rank_t rank, const char *fmt, ...)
         va_list ap;
         va_start(ap, fmt);
         fprintf(stdout, "\033[%c;3%cm",
-            rank_to_bold[rank%12], rank_to_colour[rank%12]);
+                rank_to_bold[rank%12], rank_to_colour[rank%12]);
         vfprintf(stdout, fmt, ap);
         fprintf(stdout, "\033[0m");
         fflush(stdout);
@@ -150,7 +150,7 @@ void *fatal_malloc(size_t size)
 {
     void *p = malloc(size);
     if (p==0)
-	fatal("Out of memory\n");
+        fatal("Out of memory\n");
     return p;
 }
 
@@ -160,23 +160,23 @@ unsigned char *read_whole_file(const char *filename, unsigned long int *size_ptr
     FILE *f;
     unsigned long int size;
     uint8_t *buf;
-    
-     // Read file to buf
+
+    // Read file to buf
     if (!(f=fopen(filename, "rb")))
-	return 0; // file not found
+        return 0; // file not found
     fseek(f, 0, SEEK_END);
     size = ftell(f);
     if (!(buf=(uint8_t *)malloc(size)))
     {
-	fclose(f);
-	return 0; // not enough memory
+        fclose(f);
+        return 0; // not enough memory
     }
     fseek(f, 0, SEEK_SET);
     if(fread(buf, 1, size, f) != size)
     {
-	fclose(f);
-	free(buf);
-	return 0; // read error
+        fclose(f);
+        free(buf);
+        return 0; // read error
     }
     *size_ptr = size;
     fclose(f);

@@ -8,7 +8,6 @@
 #define _SHARE_H
 
 
-
 // ---------------------------------------------------------------------
 // general 
 // ---------------------------------------------------------------------
@@ -39,7 +38,6 @@ typedef union {
     uint64_t u;
     double f;
 } uf64_t;
-
 
 
 #define BITRANGE(v,h,l)		(((v)>>(l))&((1<<((h)-(l)+1))-1))
@@ -114,7 +112,7 @@ extern rank_t conf_noc_height;
 
 #define X_FROM_RANK(r) ((r)%conf_noc_width)
 #define Y_FROM_RANK(r) ((r)/conf_noc_width)
-
+#define RANK_FROM_XY(x, y) (((y + conf_noc_width) % conf_noc_width) * conf_noc_width + ((x + conf_noc_width) % conf_noc_width))
 
 // for configurable PaterNoster
 extern unsigned conf_bypass_y;

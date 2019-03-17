@@ -1,2 +1,5 @@
 file(GLOB Noc_srcfiles "*.c")
-add_library(Noc ${Noc_srcfiles})
+file(GLOB Noc_srcfiles_one_to_one "one_to_one/*.c")
+file(GLOB Noc_srcfiles_one_to_one_events "one_to_one/events/*.c")
+include_directories("one_to_one/")
+add_library(Noc ${Noc_srcfiles} ${Noc_srcfiles_one_to_one} ${Noc_srcfiles_one_to_one_events})

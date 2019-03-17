@@ -1,0 +1,96 @@
+# -------------------------------------------------------------------------- #
+#
+# Copyright (C) 2018  Intel Corporation. All rights reserved.
+# Your use of Intel Corporation's design tools, logic functions 
+# and other software and tools, and its AMPP partner logic 
+# functions, and any output files from any of the foregoing 
+# (including device programming or simulation files), and any 
+# associated documentation or information are expressly subject 
+# to the terms and conditions of the Intel Program License 
+# Subscription Agreement, the Intel Quartus Prime License Agreement,
+# the Intel FPGA IP License Agreement, or other applicable license
+# agreement, including, without limitation, that your use is for
+# the sole purpose of programming logic devices manufactured by
+# Intel and sold by Intel or its authorized distributors.  Please
+# refer to the applicable agreement for further details.
+#
+# -------------------------------------------------------------------------- #
+#
+# Quartus Prime
+# Version 18.0.0 Build 614 04/24/2018 SJ Standard Edition
+# Date created = 12:59:24  July 24, 2018
+#
+# -------------------------------------------------------------------------- #
+#
+# Notes:
+#
+# 1) The default values for assignments are stored in the file:
+#		MA_assignment_defaults.qdf
+#    If this file doesn't exist, see file:
+#		assignment_defaults.qdf
+#
+# 2) Altera recommends that you do not modify this file. This
+#    file is updated automatically by the Quartus Prime software
+#    and any changes you make may be lost or overwritten.
+#
+# -------------------------------------------------------------------------- #
+
+
+set_global_assignment -name FAMILY "Cyclone V"
+set_global_assignment -name DEVICE 5CGXFC9E7F35C8
+set_global_assignment -name ORIGINAL_QUARTUS_VERSION 18.0.0
+set_global_assignment -name PROJECT_CREATION_TIME_DATE "12:59:24  JULY 24, 2018"
+set_global_assignment -name LAST_QUARTUS_VERSION "18.0.0 Standard Edition"
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
+set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
+set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
+set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 256
+set_global_assignment -name EDA_SIMULATION_TOOL "ModelSim-Altera (VHDL)"
+set_global_assignment -name EDA_TIME_SCALE "1 ps" -section_id eda_simulation
+set_global_assignment -name EDA_OUTPUT_DATA_FORMAT VHDL -section_id eda_simulation
+set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
+set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
+set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
+set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
+
+
+#------------------------Global------------------------
+set_global_assignment -name VHDL_FILE src/clock.vhd
+set_global_assignment -name QIP_FILE src/dmem.qip
+
+
+#------------------------Project-----------------------
+set_global_assignment -name TOP_LEVEL_ENTITY top_level
+set_global_assignment -name VHDL_FILE ../GHDL_PNOO/src/w_stage.vhd
+set_global_assignment -name VHDL_FILE ../GHDL_PNOO/src/top_level.vhd
+set_global_assignment -name VHDL_FILE ../GHDL_PNOO/src/reset.vhd
+set_global_assignment -name VHDL_FILE ../GHDL_PNOO/src/regfile_ram_replacement.vhd
+set_global_assignment -name VHDL_FILE ../GHDL_PNOO/src/regfile.vhd
+set_global_assignment -name VHDL_FILE ../GHDL_PNOO/src/pnoo_node.vhd
+set_global_assignment -name VHDL_FILE ../GHDL_PNOO/src/pnoo_node_double_corner.vhd
+set_global_assignment -name VHDL_FILE ../GHDL_PNOO/src/pnoo_node_sort.vhd
+set_global_assignment -name VHDL_FILE ../GHDL_PNOO/src/pnoo_node_empty.vhd
+set_global_assignment -name VHDL_FILE ../GHDL_PNOO/src/pnoo_node_no_rdy.vhd
+set_global_assignment -name VHDL_FILE ../GHDL_PNOO/src/pnoo_node_srr.vhd
+set_global_assignment -name VHDL_FILE ../GHDL_PNOO/src/pnoo_node_drr.vhd
+set_global_assignment -name VHDL_FILE ../GHDL_PNOO/src/pnoo_node_cg.vhd
+set_global_assignment -name VHDL_FILE ../GHDL_PNOO/src/nocunit.vhd
+set_global_assignment -name VHDL_FILE ../GHDL_PNOO/src/NetworkInterfaceSend.vhd
+set_global_assignment -name VHDL_FILE ../GHDL_PNOO/src/NetworkInterfaceRecv.vhd
+set_global_assignment -name VHDL_FILE ../GHDL_PNOO/src/flit_buffer.vhd
+set_global_assignment -name VHDL_FILE ../GHDL_PNOO/src/flit_buffer2.vhd
+set_global_assignment -name VHDL_FILE ../GHDL_PNOO/src/m_stage.vhd
+set_global_assignment -name VHDL_FILE ../GHDL_PNOO/src/libproc.vhd
+set_global_assignment -name VHDL_FILE ../GHDL_PNOO/src/LibNode.vhd
+set_global_assignment -name VHDL_FILE ../GHDL_PNOO/src/libeu.vhd
+set_global_assignment -name VHDL_FILE ../GHDL_PNOO/src/f_stage.vhd
+set_global_assignment -name VHDL_FILE ../GHDL_PNOO/src/eu.vhd
+set_global_assignment -name VHDL_FILE ../GHDL_PNOO/src/e_stage.vhd
+set_global_assignment -name VHDL_FILE ../GHDL_PNOO/src/d_stage.vhd
+set_global_assignment -name VHDL_FILE ../GHDL_PNOO/src/csrfile.vhd
+set_global_assignment -name VHDL_FILE ../GHDL_PNOO/src/cpu_top.vhd
+set_global_assignment -name VHDL_FILE ../GHDL_PNOO/src/constants.vhd
+
+
+set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

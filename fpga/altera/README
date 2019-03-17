@@ -1,0 +1,75 @@
+###########################################################
+#
+# How to compile VHDL with quartus
+#
+###########################################################
+
+A Quartus-Project is built around 2 major files:
+	*.qpf
+	*.qsf
+
+In order to create a new project copy those 2 files
+with the project-name being the filename of both files.
+
+For instance:
+	pnoo.qpf --> pnoa.qpf
+	pnoo.qsf --> pnoa.qsf
+
+Then you need to edit those 2 config-files.
+
+In the qpf-file you need to change the PROJECT_REVISION to an
+appropiate value. Normally this is the project-name as well.
+
+The qsf-file contains all the important configuration in form
+of global-assignments. 
+
+It starts with the board-configuration and various related options
+and shouldnt be changed manually.
+
+The global-sections contains the VHDL-entities for the clock and the dmem.
+Those should be consistent in all projects.
+
+However, you need to change the last category.
+Here you need to change TOP_LEVEL_ENTITY to the name of the highest entity
+in your project. (Something like NoC_2x2 or so)
+Additional all VHDL-files needs to be included in the form
+
+set_global_assignment -name VHDL_FILE <path_to_vhd_file>.
+Note that both clock and dmem are already included in the global-configuration.
+
+Once you finished the editing, you could build it with
+<path_to_quartus_installation>/quartus/bin/quartus_sh --flow compile <project_name>"
+or adjust the compile.sh script by changing QUARTUS_PATH to the correct value.
+
+Then you are able to use ./compile.sh <project_name> to compile the project.
+
+
+###########################################################
+#
+# How to iterate over multiple configurations
+#
+###########################################################
+
+In order to automatically iterate over multiple configurations
+you need to adjust/copy the test_pnoo.sh-script.
+
+CONFIG needs to be the current config-file.
+
+The script iterates over multiple configurations
+by changing the config-file before compiling inside the for-loops.
+If you want to change/replace/add various options, just add/remove
+the for-loop together with replace-logic.
+
+The output-summaries will be stored in the summary-directory
+with all options as part of the name. The summary also contains
+the name of the full-logs, which could be found in the logs-folder.
+
+##########################################################
+#
+# How to display the ALMs per entity
+#
+##########################################################
+
+Just use  ./analyse.sh <*.fit.rpt> to display the ALMs per entity of the first node.
+
+

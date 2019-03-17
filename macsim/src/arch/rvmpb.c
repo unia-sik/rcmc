@@ -133,8 +133,8 @@ static inline int_fast16_t memory_store(node_t *node, unsigned access_type,
 #define REG_S           node->core.riscv.reg[BRu(19, 15)]
 #define REG_Du          (*((uint64_t *)&node->core.riscv.reg[BRu(11, 7)]))
 #define REG_Tu          (*((uint64_t *)&node->core.riscv.reg[BRu(24, 20)]))
-//#define SREG_D          (*((float *)&node->core.riscv.freg[BRu(11, 7)]))
-//#define SREG_T          (*((float *)&node->core.riscv.freg[BRu(24, 20)]))
+#define SREG_D          (*((float *)&node->core.riscv.freg[BRu(11, 7)]))
+#define SREG_T          (*((float *)&node->core.riscv.freg[BRu(24, 20)]))
 #define DREG_D          node->core.riscv.freg[BRu(11, 7)]
 #define DREG_T          node->core.riscv.freg[BRu(24, 20)]
 #define IMM_I           ((int64_t)(int32_t)iw>>20)
