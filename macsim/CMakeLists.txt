@@ -1,9 +1,9 @@
 project("MacSim")
 cmake_minimum_required(VERSION 2.8)
 
-set(CMAKE_C_COMPILER "clang")
+#set(CMAKE_C_COMPILER "clang")
 set(CMAKE_C_FLAGS "-O3 -g -Wall")
-set(CLANG true)
+#set(CLANG true)
 
 include_directories(src)
 include_directories(src/arch)

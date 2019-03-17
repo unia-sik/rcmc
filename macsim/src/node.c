@@ -83,6 +83,9 @@ uint64_t node_rand64(node_t *node)
 }
 
 
+void dont_set_argv(node_t *node, int argc, char *argv)
+{
+}
 
 
 // Init the memory
@@ -90,6 +93,7 @@ void core_init_context(node_t *node)
 {
     node->bp_addr = NO_BREAKPOINT;
     node->cycle_offset_next_instr = 0;
+    node->set_argv = dont_set_argv;
     statistic_init(&node->stats);
 
     switch (node->core_type) {

@@ -129,17 +129,6 @@ static inline int_fast16_t memory_store(node_t *node, unsigned access_type,
 // floating point math
 // ---------------------------------------------------------------------
 
-typedef union {
-    int32_t i;
-    float f;
-} if32_t;
-
-typedef union {
-    uint64_t u;
-    double f;
-} uf64_t;
-
-
 #define BRu(h,l)	(((iw)>>(l))&((1<<((h)-(l)+1))-1))
 #define REG_S           node->core.riscv.reg[BRu(19, 15)]
 #define REG_Du          (*((uint64_t *)&node->core.riscv.reg[BRu(11, 7)]))
@@ -161,7 +150,7 @@ typedef union {
 
 instruction_class_t rvmpb_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32_t next_iw)
 {
-    if32_t x32;
+    uf32_t x32;
     uf64_t x64;
 
     node->core.riscv.reg[0] = 0;
@@ -218,7 +207,7 @@ instruction_class_t rvmpb_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
                 uint64_t u;
                 uint16_t lat = memory_load_u64(node, MA_32le, addr, &u);
                 x32.i = u;
-                SREG_D = x32.f;
+                DREG_D = boxing_float(x32.f);
                 return RVMPB_LATENCY_ADDR_CALC+lat;
             }
             case 0x3000:  // fld
@@ -236,7 +225,7 @@ instruction_class_t rvmpb_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
             addr_t addr = REG_S + IMM_S;
             switch (iw & 0x7000) {
             case 0x2000:  // fsw
-                x32.f = SREG_T;
+                x32.f = unboxing_float(DREG_T);
                 return RVMPB_LATENCY_ADDR_CALC
                     + memory_store(node, MA_32le, addr, x32.i);
             case 0x3000:  // fsd

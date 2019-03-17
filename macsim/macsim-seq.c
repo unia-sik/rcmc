@@ -55,6 +55,29 @@ static bool remove_breakpoint(node_t *node, uint_fast32_t addr)
 node_t *nodes[MAX_RANK];	// list of all nodes
 uint_fast16_t conf_noc_type;     // type of the NoC
 
+void set_client_arguments(char *argstr)
+{
+    size_t len = strlen(argstr)+1;
+    char argbuf[len+1];
+
+    int argc=0, i=0, j=0;
+    char ch = argstr[i++];
+    while (i<len) {
+        while ((i<len) && ((ch==' ') || (ch=='\t')))
+            ch = argstr[i++];
+        argc++;
+        while ((i<len) && ((ch!=' ') && (ch!='\t'))) {
+            argbuf[j++] = ch;
+            ch = argstr[i++];
+        }
+        argbuf[j++] = 0;
+    }
+
+    rank_t r;
+    for (r=0; r<conf_max_rank; r++) {
+        nodes[r]->set_argv(nodes[r], argc, argbuf);
+    }
+}
 
 // Print reason why the process was stopped and return core state
 uint_fast32_t reason_for_stop(node_t *node)
@@ -101,7 +124,7 @@ void simulate_one_instruction(node_t *node)
         if (cs==CS_RUNNING+1) node->pc = node->nextpc;
     } else if (CS_READY(cs)) {
         instruction_class_t ic = node->one_cycle(node);
-        
+
         // Timing
         if (ic>0) {
             statistic_insert_instr(&node->stats, node->pc, ic);
@@ -159,7 +182,6 @@ uint_fast64_t get_timestamp()
 // Simulate all cores and the periodical interconnect
 void simulation()
 {
-    bool ready[conf_max_rank];
     rank_t r;
     cycle_t min=CYCLE_T_MAX;
     cycle_t max=0;
@@ -193,11 +215,7 @@ void simulation()
     for (r=0; r<conf_max_rank; r++)
     {
         // determine, which cores are still running
-        if (!CS_READY(nodes[r]->state)) {
-            ready[r] = 0;
-        } else {
-            ready[r] = 1;
-
+        if (CS_READY(nodes[r]->state)) {
             cycle_t c = nodes[r]->cycle;
             if (c<min) min=c;
             if (c>max) max=c;
@@ -541,6 +559,8 @@ void process_line(char command, char *argument)
             "l [file]      redirect logging to a file\n"
             "m [file]      redirect output of current core to a file\n"
 //            "n             simulate next instruction (step over calls)"
+            "k traffic     shows the traffic of the current core\n"
+            "k instr       show the instruction-statistic of the current core\n"
             "o [file]      redirect cumulative output of all cores to a file\n"
             "p             print context of all cores\n"
             "r             print NoC context\n"
@@ -815,7 +835,7 @@ void process_line(char command, char *argument)
 //        else if (strcmp(argument, "mips32"))    ct=CT_mips32;
 //        else if (strcmp(argument, "or32"))      ct=CT_or32;
 //        else if (strcmp(argument, "patmos"))    ct=CT_patmos;
-        else if (strcmp(argument, "riscv")==0) {
+        else if (strcmp(argument, "riscv")==0 || strcmp(argument, "rv64i")==0) {
             ct=CT_riscv;
         }
         else if (strcmp(argument, "rvmpb")==0) {
@@ -908,8 +928,9 @@ void process_line(char command, char *argument)
         break;
     }
 
-
-
+    case 'P': // set command line arguments of simulated program                            
+          set_client_arguments(argument);                                                   
+          break; 
 
     case 'R': // set NoC routing algorithm
     {

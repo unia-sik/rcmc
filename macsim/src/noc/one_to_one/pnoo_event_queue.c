@@ -98,7 +98,6 @@ void pnoo_event_queue_insert_item(pnoo_event_queue_t* queue, pnoo_event_queue_it
 
 
     int n  = 0;
-    int x;
 
 //     if (queue->tail != NULL) {
 //         x = queue->tail->clk;
