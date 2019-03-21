@@ -152,7 +152,7 @@
     inline int fgmp_core_id() {
         int result;
         asm volatile (
-            "csrr %0, 0xc71;"
+            "csrr %0, 0xc75;"
             "nop"
             : "=r" (result)
         );

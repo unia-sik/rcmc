@@ -84,7 +84,7 @@ fgmp_is_ready_L1:
     
 .global fgmp_core_id
 fgmp_core_id:
-    csrr    a0,0xc71
+    csrr    a0,0xc75
     nop
     ret
     

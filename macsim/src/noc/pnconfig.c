@@ -800,12 +800,12 @@ void pnconfig_print_context(node_t *nodes[], rank_t max_rank)
         printf("\n");
     }
 
-   pnconfig_context_t *n17 = nodes[0x17]->noc_context;
-   flitfifo_verbose(&n17->corner_fifo);
-   printf("\n");
+    pnconfig_context_t *n17 = nodes[0x17]->noc_context;
+    flitfifo_verbose(&n17->corner_fifo);
+    printf("\n");
 
-   flitfifo_verbose(&n17->recv_fifo);
-   printf("\n");
+    flitfifo_verbose(&n17->recv_fifo);
+    printf("\n");
 }
 
 

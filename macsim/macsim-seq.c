@@ -272,7 +272,7 @@ double print_one_point(double injrate, double *latency)
     double real_injrate = (double)count / (double)(conf_eval_cycles*conf_max_rank);
     *latency = (double)total / (double)count;
     core_printf(0, "%.7f %.7f %7.1f %lu %lu\n",
-                injrate, real_injrate, *latency, count, total);
+        injrate, real_injrate, *latency, count, total);
 
     return real_injrate;
 }
@@ -309,7 +309,7 @@ void latency_vs_throughput()
         desired_ir += step;
         ir = print_one_point(desired_ir, &lat);
         if (rise_ir==0.0 && (lat > 2.0*prev_lat)) rise_ir = desired_ir-step;
-        // remember the injrate, if significant rise of latency
+            // remember the injrate, if significant rise of latency
     }
     if (rise_ir==0.0) rise_ir = desired_ir-step;
 
@@ -986,95 +986,6 @@ void process_line(char command, char *argument)
                 nt = NT_debug;
                 s = "Perfect NoC with debug output";
 
-                // deprecated naming convention, will be removed soon
-            } else if (argument[0]=='C') {
-                nt = NT_pnconfig;
-                s = "Configurable PaterNoster";
-                switch (argument[1]) {
-                case 'n':
-                    conf_bypass_y = CONF_BYPASS_NONE;
-                    break;
-                case 'u':
-                    conf_bypass_y = CONF_BYPASS_UNBUF;
-                    break;
-                case 'b':
-                    conf_bypass_y = CONF_BYPASS_BUF;
-                    break;
-                case 'w':
-                    conf_bypass_y = CONF_BYPASS_2UNBUF;
-                    break;
-                case 'd':
-                    conf_bypass_y = CONF_BYPASS_2BUF;
-                    break;
-                default:
-                    fatal("Unknown configuration '%s'.\n", argument);
-                }
-                switch (argument[2]) {
-                case 'n':
-                    conf_bypass_x = CONF_BYPASS_NONE;
-                    break;
-                case 'u':
-                    conf_bypass_x = CONF_BYPASS_UNBUF;
-                    break;
-                case 'b':
-                    conf_bypass_x = CONF_BYPASS_BUF;
-                    break;
-                default:
-                    fatal("Unknown configuration '%s'.\n", argument);
-                }
-                switch (argument[3]) {
-                case 'c':
-                    conf_stall_y = CONF_STALL_CHEAP;
-                    break;
-                case 'e':
-                    conf_stall_y = CONF_STALL_EXP;
-                    break;
-                default:
-                    fatal("Unknown configuration '%s'.\n", argument);
-                }
-                switch (argument[4]) {
-                case 'c':
-                    conf_stall_x = CONF_STALL_CHEAP;
-                    break;
-                case 'e':
-                    conf_stall_x = CONF_STALL_EXP;
-                    break;
-                default:
-                    fatal("Unknown configuration '%s'.\n", argument);
-                }
-                switch (argument[5]) {
-                case '0':
-                    conf_inject_y = CONF_INJECT_NONE;
-                    break;
-                case 'r':
-                    conf_inject_y = CONF_INJECT_REQUEST;
-                    break;
-                case 'a':
-                    conf_inject_y = CONF_INJECT_ALTERNATE;
-                    break;
-                case 't':
-                    conf_inject_y = CONF_INJECT_THROTTLE;
-                    break;
-                default:
-                    fatal("Unknown configuration '%s'.\n", argument);
-                }
-                switch (argument[6]) {
-                case '0':
-                    conf_inject_x = CONF_INJECT_NONE;
-                    break;
-                case 'r':
-                    conf_inject_x = CONF_INJECT_REQUEST;
-                    break;
-                case 'a':
-                    conf_inject_x = CONF_INJECT_ALTERNATE;
-                    break;
-                case 't':
-                    conf_inject_x = CONF_INJECT_THROTTLE;
-                    break;
-                default:
-                    fatal("Unknown configuration '%s'.\n", argument);
-                }
-
             } else if (argument[0]=='P') {
                 nt = NT_pnconfig;
                 s = "PaterNoster best effort";
@@ -1175,28 +1086,28 @@ void process_line(char command, char *argument)
         user_printf("Changing NoC to %s\n", s);
         conf_noc_type = nt;
         noc_destroy_all(nodes, conf_max_rank);
-        // free memory allocated for the previous NoC
+            // free memory allocated for the previous NoC
         noc_init_all(nodes, conf_noc_type, conf_noc_width, conf_noc_height);
-        // initialize the new NoC
+            // initialize the new NoC
         break;
     }
 
-    /*
-        case 'T': // load netrace file
+/*
+    case 'T': // load netrace file
+    {
+        rank_t r;
+        if (!argument)
         {
-            rank_t r;
-            if (!argument)
-            {
-                user_printf("Filename expected.\n");
-                break;
-            }
-            user_printf("Loading netrace from '%s'.\n", argument);
-            nt_open_trfile(argument);
-            conf_netrace_on = 1;
-            // clean all NoC buffers?
+            user_printf("Filename expected.\n");
             break;
         }
-    */
+        user_printf("Loading netrace from '%s'.\n", argument);
+        nt_open_trfile(argument);
+        conf_netrace_on = 1;
+        // clean all NoC buffers?
+        break;
+    }
+*/
 
     case 'x': // run to end and store each context to a file
     {
@@ -1404,8 +1315,10 @@ void process_line(char command, char *argument)
         rank_t r;
         bool all_stopped;
         int64_t all_registers[conf_max_rank*32];
+        uint64_t all_fregs[conf_max_rank*32];
         for(r=0; r<conf_max_rank*32; r++) {
             all_registers[r] = 0;
+            all_fregs[r] = 0;
         }
         if (!argument) {
             user_printf("Output path and filename for context file expected.\n");
@@ -1463,6 +1376,14 @@ void process_line(char command, char *argument)
                         }
                         all_registers[r*32+i] = nodes[r]->core.riscv.reg[i];
                     }
+                    for (i=0; i<32; i++) {
+                        uf64_t x;
+                        x.f = nodes[r]->core.riscv.freg[i];
+                        if (x.u != all_fregs[r*32+i]) {
+                            fprintf(out,"°%ld f%u %lx\n", r, i, x.u);
+                        }
+                        all_fregs[r*32+i] = x.u;
+                    }
                 }
             }
             // Check if a core is still running
@@ -1496,14 +1417,13 @@ int main(int argc, char *argv[])
     init_streaming();
     conf_inj_rate = 0.1;
     conf_inj_prob = llrint(0x1.0p64 * conf_inj_rate);
-    conf_max_rank = 1024;
+    conf_max_rank = 4;
     conf_noc_width = 2;
     conf_noc_height = 2;
-    conf_noc_type = NT_pnoo;
+    conf_noc_type = NT_perfect;
     conf_send_fifo_size = 8;
     conf_recv_fifo_size = 8;
     conf_corner_fifo_size = 8;
-
     for (r=0; r<MAX_RANK; r++)
     {
         nodes[r] = malloc(sizeof(node_t));

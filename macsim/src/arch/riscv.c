@@ -27,8 +27,8 @@
 
 
 
-#define RISCV_STACK_END                 0xF0000000                                           |                                                                                              
-#define RISCV_STACK_ALIGN_MASK          (-64)  
+#define RISCV_STACK_END                 0xF0000000
+#define RISCV_STACK_ALIGN_MASK          (-64)
 
 // latency of instructions (in clock cycles)
 #define RISCV_LATENCY_ARITH             1
@@ -50,6 +50,7 @@
 #define RISCV_LATENCY_FMV               1
 #define RISCV_LATENCY_F2I               2
 #define RISCV_LATENCY_I2F               2
+/*
 #define RISCV_LATENCY_FADD              4
 #define RISCV_LATENCY_FMUL              4
 #define RISCV_LATENCY_FMA               4
@@ -57,6 +58,14 @@
 #define RISCV_LATENCY_FDIV_D            41
 #define RISCV_LATENCY_FSQRT_S           45
 #define RISCV_LATENCY_FSQRT_D           57
+*/
+#define RISCV_LATENCY_FADD              3
+#define RISCV_LATENCY_FMUL              3
+#define RISCV_LATENCY_FMA               3
+#define RISCV_LATENCY_FDIV_S            25
+#define RISCV_LATENCY_FDIV_D            31
+#define RISCV_LATENCY_FSQRT_S           28
+#define RISCV_LATENCY_FSQRT_D           37
 
 // core special registers
 #define RISCV_CSR_FFLAGS        0x001
@@ -102,6 +111,7 @@
 #define RISCV_CSR_NOCDIM        0xC72 // ro implementation required!
 #define RISCV_CSR_SENDRDY       0xC73 // ro
 #define RISCV_CSR_NEXTRECV      0xC74 // ro
+#define RISCV_CSR_XYZ           0xC75 // ro
 
 // floating point exception flags for fcsr
 #define RISCV_FFLAGS_NX         1
@@ -122,7 +132,7 @@
 #define RISCV_FCLASS_SIGNALING_NAN      0x0100
 #define RISCV_FCLASS_QUIET_NAN          0x0200
 
-#define RISCV_CANONICAL_NAN_FLOAT       0x7FC00000
+//#define RISCV_CANONICAL_NAN_FLOAT       0x7FC00000
 #define RISCV_CANONICAL_NAN_DOUBLE      0x7FF8000000000000
 
 
@@ -212,9 +222,11 @@ static int64_t csr_read(node_t *node, uint_fast16_t no)
     case RISCV_CSR_MTOHOST:     return 0;
     case RISCV_CSR_PUTCHAR:     return 0;
     case RISCV_CSR_MAXCID:      return conf_max_rank;
-    case RISCV_CSR_CID:         return ((node->rank / conf_noc_width) << 16) | (node->rank % conf_noc_width);
+//    case RISCV_CSR_CID:         return node->rank;
+    case RISCV_CSR_CID:         fatal("continuous CID no longer supported");
+    case RISCV_CSR_XYZ:         return ((node->rank / conf_noc_width) << 16) | (node->rank % conf_noc_width);
     case RISCV_CSR_NOCDIM:      return (0x0001000100000000 |
-                                       (conf_noc_width<<16) | conf_noc_width);
+                                       (conf_noc_height<<16) | conf_noc_width);
     case RISCV_CSR_SENDRDY:     return node->noc_sender_ready(node) ? 0 : 1;
     case RISCV_CSR_NEXTRECV:    return node->noc_probe_any(node);
     }
@@ -267,6 +279,7 @@ static inline instruction_class_t ic_exception(node_t *node, uint64_t cause)
 // ---------------------------------------------------------------------
 // floating point math
 // ---------------------------------------------------------------------
+
 
 // prepare the host FPU environment before a client instruction is emulated
 static void prepare_host_fp_env()
@@ -389,6 +402,7 @@ static uint_fast16_t fclass_double(double f)
     return s ? RISCV_FCLASS_NEG_NORMAL : RISCV_FCLASS_POS_NORMAL;
 }
 
+
 static inline uint64_t riscv_fcvt(node_t *node, double f, int64_t min, uint64_t max)
 {
     long long ll; // C99: at least 64 bit wide
@@ -462,7 +476,6 @@ static inline uint64_t riscv_mulh(int64_t a, int64_t b)
 
 
 
-
 #define BRu(h,l)	(((iw)>>(l))&((1<<((h)-(l)+1))-1))
 #define BRs(h,l)	((((int64_t)(iw))<<(63-(h)))>>(63-(h)+(l)))
 
@@ -477,7 +490,6 @@ static inline uint64_t riscv_mulh(int64_t a, int64_t b)
 #define DREG_S          node->core.riscv.freg[BRu(19, 15)]
 #define DREG_T          node->core.riscv.freg[BRu(24, 20)]
 #define DREG_U          node->core.riscv.freg[BRu(31, 27)]
-
 #define SREG_S          unboxing_float(DREG_S)
 #define SREG_T          unboxing_float(DREG_T)
 #define SREG_U          unboxing_float(DREG_U)
@@ -978,7 +990,7 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
         {
             addr_t addr = REG_S + IMM_I;
             instruction_class_t latency = RISCV_LATENCY_ADDR_CALC;
-           
+
             // next_instruction.REG_S = REG_D and next_instruction uses REG_S
             if (riscv_instruction_uses_reg_s(next_iw) && nBRu(19, 15) == BRu(11, 7)) {
                 /*node->cycle_offset_next_instr*/ latency = RISCV_LATENCY_INTERLOCK;
@@ -989,19 +1001,31 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
             }
 
             switch (iw & 0x7000) {
-            case 0x0000: return latency
+            case 0x0000: 
+                return latency
                 + generic_memory_load_u64(node, MA_8, addr, &REG_Du); // lb
-            case 0x1000: return latency
+            case 0x1000: 
+                CHECK_ALIGNMENT(addr, 1);
+                return latency
                 + generic_memory_load_u64(node, MA_16le, addr, &REG_Du); // lh
-            case 0x2000: return latency
+            case 0x2000: 
+                CHECK_ALIGNMENT(addr, 3);
+                return latency
                 + generic_memory_load_u64(node, MA_32le, addr, &REG_Du); // lw
-            case 0x3000: return latency
+            case 0x3000:
+                CHECK_ALIGNMENT(addr, 7);
+                return latency
                 + generic_memory_load_u64(node, MA_64le, addr, &REG_Du); // ld
-            case 0x4000: return latency
+            case 0x4000:
+                return latency
                 + generic_memory_load_u64(node, MA_u8, addr, &REG_Du); // lbu
-            case 0x5000: return latency
+            case 0x5000:
+                CHECK_ALIGNMENT(addr, 1);
+                return latency
                 + generic_memory_load_u64(node, MA_u16le, addr, &REG_Du); // lhu
-            case 0x6000: return latency
+            case 0x6000:
+                CHECK_ALIGNMENT(addr, 3);
+                return latency
                 + generic_memory_load_u64(node, MA_u32le, addr, &REG_Du); // lwu
             }
             break;
@@ -1011,13 +1035,20 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
         {
             addr_t addr = REG_S + IMM_S;
             switch (iw & 0x7000) {
-            case 0x0000: return RISCV_LATENCY_ADDR_CALC
+            case 0x0000: 
+                return RISCV_LATENCY_ADDR_CALC
                 + generic_memory_store(node, MA_8, addr, REG_Tu); // sb
-            case 0x1000: return RISCV_LATENCY_ADDR_CALC
+            case 0x1000:
+                CHECK_ALIGNMENT(addr, 1);
+                return RISCV_LATENCY_ADDR_CALC
                 + generic_memory_store(node, MA_16le, addr, REG_Tu); // sh
-            case 0x2000: return RISCV_LATENCY_ADDR_CALC
+            case 0x2000:
+                CHECK_ALIGNMENT(addr, 3);
+                return RISCV_LATENCY_ADDR_CALC
                 + generic_memory_store(node, MA_32le, addr, REG_Tu); // sw
-            case 0x3000: return RISCV_LATENCY_ADDR_CALC
+            case 0x3000:
+                CHECK_ALIGNMENT(addr, 7);
+                return RISCV_LATENCY_ADDR_CALC
                 + generic_memory_store(node, MA_64le, addr, REG_Tu); // sd
             }
             break;
@@ -1317,6 +1348,7 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
             switch (iw & 0x7000) {
             case 0x2000:  // flw
             {
+                CHECK_ALIGNMENT(addr, 3);
                 uint64_t u;
                 uint16_t lat = generic_memory_load_u64(node, MA_32le, addr, &u);
                 x32.u = u;
@@ -1325,6 +1357,7 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
             }
             case 0x3000:  // fld
             {
+                CHECK_ALIGNMENT(addr, 7);
                 uint16_t lat = generic_memory_load_u64(node, MA_64le, addr, &x64.u);
                 DREG_D = x64.f;
                 return latency+lat;
@@ -1490,38 +1523,38 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
             case 0x14:
                 switch (iw&0x7000) {
                 case 0x0000: // fmin.s
-                      x32.f = SREG_S;                                                   
-                      y32.f = SREG_T;                                                   
-                      if ((x32.u|y32.u) == 0x80000000) { // fmin(+0.0, -0.0) = -0.0     
-                          x64.u = 0xffffffff80000000;                                   
-                          DREG_D = x64.f;                                               
-                      } else {                                                          
-                          DREG_D = canonical_nan_float(fminf(x32.f, y32.f));            
-                          if (issignaling_float(x32.f) ||                               
-                              issignaling_float(y32.f))                                 
-                          {                                                             
-                              node->core.riscv.fcsr |= RISCV_FFLAGS_NV;                 
-                          }                                                             
-                      }  
+                    x32.f = SREG_S;
+                    y32.f = SREG_T;
+                    if ((x32.u|y32.u) == 0x80000000) { // fmin(+0.0, -0.0) = -0.0
+                        x64.u = 0xffffffff80000000;
+                        DREG_D = x64.f;
+                    } else {
+                        DREG_D = canonical_nan_float(fminf(x32.f, y32.f));
+                        if (issignaling_float(x32.f) ||
+                            issignaling_float(y32.f))
+                        {
+                            node->core.riscv.fcsr |= RISCV_FFLAGS_NV;
+                        }
+                    }
                     return RISCV_LATENCY_FMIN;
                 case 0x1000: // fmax.s
-                      x32.f = SREG_S;                                                 
-                      y32.f = SREG_T;                                                 
-                      if ((x32.u|y32.u) == 0x80000000) { // fmax(+0.0, -0.0) = +0.0   
-                          x64.i = 0xffffffff00000000 | (x32.i&y32.i);                 
-                          DREG_D = x64.f;                                             
-                      } else {                                                        
-                          DREG_D = canonical_nan_float(fmaxf(x32.f, y32.f));          
-                          if (issignaling_float(x32.f) ||                             
-                              issignaling_float(y32.f))                               
-                          {                                                           
-                              node->core.riscv.fcsr |= RISCV_FFLAGS_NV;               
-                          }                                                           
-                      }                                                               
-                      return RISCV_LATENCY_FMIN;  
+                    x32.f = SREG_S;
+                    y32.f = SREG_T;
+                    if ((x32.u|y32.u) == 0x80000000) { // fmax(+0.0, -0.0) = +0.0
+                        x64.i = 0xffffffff00000000 | (x32.i&y32.i);
+                        DREG_D = x64.f;
+                    } else {
+                        DREG_D = canonical_nan_float(fmaxf(x32.f, y32.f));
+                        if (issignaling_float(x32.f) ||
+                            issignaling_float(y32.f))
+                        {
+                            node->core.riscv.fcsr |= RISCV_FFLAGS_NV;
+                        }
+                    }
+                    return RISCV_LATENCY_FMIN;
                 }
                 break;
-case 0x15:
+            case 0x15:
                 switch (iw&0x7000) {
                 case 0x0000: // fmin.d
                     x64.f = DREG_S;
@@ -1554,7 +1587,6 @@ case 0x15:
                     return RISCV_LATENCY_FMIN;
                 }
                 break;
-
 
 
             case 0x20: 
@@ -1593,25 +1625,31 @@ case 0x15:
                 switch (iw&0x7000) {
                 case 0x0000: // fle.s
                     REG_D = (SREG_S <= SREG_T) ? 1 : 0;
+                    update_client_fp_env(node);
                     return RISCV_LATENCY_FCMP;
                 case 0x1000: // flt.s
                     REG_D = (SREG_S < SREG_T) ? 1 : 0;
+                    update_client_fp_env(node);
                     return RISCV_LATENCY_FCMP;
                 case 0x2000: // feq.s
                     REG_D = (SREG_S == SREG_T) ? 1 : 0;
+                    update_client_fp_env(node);
                     return RISCV_LATENCY_FCMP;
                 }
                 break;
             case 0x51:
                 switch (iw&0x7000) {
-                case 0x0000: // fle.s
+                case 0x0000: // fle.d
                     REG_D = (DREG_S <= DREG_T) ? 1 : 0;
+                    update_client_fp_env(node);
                     return RISCV_LATENCY_FCMP;
-                case 0x1000: // flt.s
+                case 0x1000: // flt.d
                     REG_D = (DREG_S < DREG_T) ? 1 : 0;
+                    update_client_fp_env(node);
                     return RISCV_LATENCY_FCMP;
-                case 0x2000: // feq.s
+                case 0x2000: // feq.d
                     REG_D = (DREG_S == DREG_T) ? 1 : 0;
+                    update_client_fp_env(node);
                     return RISCV_LATENCY_FCMP;
                 }
                 break;
@@ -1734,7 +1772,6 @@ case 0x15:
             }
             break;
 
-            
         // RC/MC
         case 0x6b:
         {
@@ -1818,7 +1855,7 @@ instruction_class_t riscv_one_cycle(node_t *node)
     uint32_t iw;
     uint32_t next_iw;
     uint_fast32_t pc = node->pc;
-    
+
     memory_fetch_32le(node, pc, &iw);
     node->nextpc = pc + 4;
     memory_fetch_32le(node, node->nextpc, &next_iw);
@@ -1832,6 +1869,7 @@ instruction_class_t riscv_one_cycle(node_t *node)
     return ic;
 //     return offset + ic;
 }
+
 
 // push the command line arguments on the stack
 // argbuf is the concatination of argc zero-terminated strings
@@ -1860,11 +1898,12 @@ void riscv_set_argv(node_t *node, int argc, char *argbuf)
 }
 
 
-
 // Init context
 void riscv_init_context(node_t *node)
 {
     uint_fast32_t i;
+
+    node->set_argv = riscv_set_argv;
 
     memory_init(node, MT_PAGED_32BIT, 0x100000000LL);
 
@@ -2522,5 +2561,3 @@ void riscv_dump_context(const char *file, node_t *node) {
 
   fclose(out);
 }
-
-
