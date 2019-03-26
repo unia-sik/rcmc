@@ -20,7 +20,21 @@ fi
 ## create new opcode file
 #cd riscv-opcodes
 #cat > opcodes-fgmp <<EOF
+
 ## Fine Grained Message Passing opcodes
+#snd rs1 rs2   31..27=0 26..25=0                   14..12=0 11..7=4 6..2=0x1A 1..0=3
+#rcvn rd rs1   31..27=0 26..25=0 24..20=4 19..15=0 14..12=4         6..2=0x1A 1..0=3
+#rcvp rd rs1   31..27=0 26..25=0 24..20=5 19..15=0 14..12=4         6..2=0x1A 1..0=3
+#bsf bimm12hi bimm12lo           24..20=4 19..15=0 14..12=1         6..2=0x1A 1..0=3
+#bsnf bimm12hi bimm12lo          24..20=5 19..15=0 14..12=1         6..2=0x1A 1..0=3
+#bre bimm12hi bimm12lo           24..20=6 19..15=0 14..12=1         6..2=0x1A 1..0=3
+#brne bimm12hi bimm12lo          24..20=7 19..15=0 14..12=1         6..2=0x1A 1..0=3
+#
+## ready interface:
+#srdy rs1      31..27=0 26..25=0 24..20=0          14..12=2 11..7=0 6..2=0x1A 1..0=3
+#bnr rs1 bimm12hi bimm12lo       24..20=0          14..12=2         6..2=0x18 1..0=3
+#
+## deprecated:
 #send rs1 rs2  31..27=0 26..25=0 14..12=0                   11..7=0 6..2=0x1A 1..0=3
 #cong rd       31..27=0 26..25=0 24..20=0 19..15=0 14..12=1         6..2=0x1A 1..0=3
 #recv rd rs1   31..27=0 26..25=0 24..20=0          14..12=4         6..2=0x1A 1..0=3
@@ -43,6 +57,17 @@ fi
 cat > tmp <<EOF
 
 /* Fine Grained Message Passing opcodes */
+{"snd",       "I",   "s,t",  MATCH_SND, MASK_SND, match_opcode, 0},
+{"srdy",      "I",   "s",  MATCH_SRDY, MASK_SRDY, match_opcode, 0},
+{"rcvn",      "I",   "d",  MATCH_RCVN, MASK_RCVN, match_opcode, 0},
+{"rcvp",      "I",   "d",  MATCH_RCVP, MASK_RCVP, match_opcode, 0},
+{"bsf",       "I",   "p",  MATCH_BSF, MASK_BSF, match_opcode, 0},
+{"bsnf",      "I",   "p",  MATCH_BSNF, MASK_BSNF, match_opcode, 0},
+{"bre",       "I",   "p",  MATCH_BRE, MASK_BRE, match_opcode, 0},
+{"brne",      "I",   "p",  MATCH_BRNE, MASK_BRNE, match_opcode, 0},
+{"br",        "I",   "s,p",  MATCH_BR, MASK_BR, match_opcode, 0},
+{"bnr",       "I",   "s,p",  MATCH_BNR, MASK_BNR, match_opcode, 0},
+/* deprecated */
 {"send",      "I", "s,t", MATCH_SEND, MASK_SEND, match_opcode, 0},
 {"cong",      "I", "d",   MATCH_CONG, MASK_CONG, match_opcode, 0},
 {"recv",      "I", "d,s", MATCH_RECV, MASK_RECV, match_opcode, 0},
@@ -61,6 +86,26 @@ rm tmp
 cat > tmp <<EOF
 
 #ifndef RISCV_ENCODING_H
+#define MATCH_SND 0x5b
+#define MASK_SND  0xfe007fff
+#define MATCH_SRDY 0x106b
+#define MASK_SRDY  0xfff07fff
+#define MATCH_RCVN 0x205b
+#define MASK_RCVN  0xfffff07f
+#define MATCH_RCVP 0x305b
+#define MASK_RCVP  0xfffff07f
+#define MATCH_BSF 0x7b
+#define MASK_BSF  0x1fff07f
+#define MATCH_BSNF 0x107b
+#define MASK_BSNF  0x1fff07f
+#define MATCH_BRE 0x207b
+#define MASK_BRE  0x1fff07f
+#define MATCH_BRNE 0x307b
+#define MASK_BRNE  0x1fff07f
+#define MATCH_BR 0x407b
+#define MASK_BR  0x1f0707f
+#define MATCH_BNR 0x507b
+#define MASK_BNR  0x1f0707f
 #define MATCH_SEND 0x6b
 #define MASK_SEND  0xfe007fff
 #define MATCH_CONG 0x106b
@@ -79,6 +124,16 @@ cat > tmp <<EOF
 #define MASK_NOCDIM  0xfffff07f
 #endif
 #ifdef DECLARE_INSN
+DECLARE_INSN(snd, MATCH_SND, MASK_SND)
+DECLARE_INSN(rcvn, MATCH_RCVN, MASK_RCVN)
+DECLARE_INSN(rcvp, MATCH_RCVP, MASK_RCVP)
+DECLARE_INSN(bsf, MATCH_BSF, MASK_BSF)
+DECLARE_INSN(bsnf, MATCH_BSNF, MASK_BSNF)
+DECLARE_INSN(bre, MATCH_BRE, MASK_BRE)
+DECLARE_INSN(brne, MATCH_BRNE, MASK_BRNE)
+DECLARE_INSN(srdy, MATCH_SRDY, MASK_SRDY)
+DECLARE_INSN(br, MATCH_BR, MASK_BR)
+DECLARE_INSN(bnr, MATCH_BNR, MASK_BNR)
 DECLARE_INSN(send, MATCH_SEND, MASK_SEND)
 DECLARE_INSN(cong, MATCH_CONG, MASK_CONG)
 DECLARE_INSN(recv, MATCH_RECV, MASK_RECV)

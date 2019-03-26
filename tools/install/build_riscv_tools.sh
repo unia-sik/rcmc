@@ -3,8 +3,8 @@
 
 
 PREFIX=$(pwd)/../riscv
-COMMIT=20b5c8a1 # tested commit as of 2017-08-26
-
+#COMMIT=20b5c8a1 # tested commit as of 2017-08-26
+COMMIT=eb34a2c2 # tested commit as of 2017-11-08
 
 for arg in "$@"
 do

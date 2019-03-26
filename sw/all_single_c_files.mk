@@ -13,10 +13,15 @@ ELF_FILES = $(PROGRAMS:%=$(BUILD_DIR)%.$(ARCH).elf)
 $(BUILD_DIR)%.$(ARCH).elf: %.c
 	$(CC) $(CFLAGS) -Wall -O2 -g -o $@ $^ $(ADD_CFLAGS) $(LDFLAGS)
 
-all: $(BUILD_DIR) $(ELF_FILES)
+
+all: libraries $(BUILD_DIR) $(ELF_FILES)
 
 clean:
 	-rm -rf $(BUILD_DIR)
+
+# build arch specific libraries
+libraries:
+	make -C $(RCMC_ROOT)sw/lib/arch/$(ARCH)
 
 $(BUILD_DIR):
 	-mkdir $(BUILD_DIR)

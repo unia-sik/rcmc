@@ -2,9 +2,10 @@
 # Fetch, modify and build only riscv-gcc with support for FGMP instructions
 
 
-PREFIX=$(pwd)/../rv64iamfd
-COMMIT=1a74ccbe # tested commit as of 2017-08-26
-ARCH=rv64iamfd
+PREFIX=$(pwd)/../rv64imafd
+#COMMIT=1a74ccbe # tested commit as of 2017-08-26
+COMMIT=d61f516a # tested commit as of 2017-11-08
+ARCH=rv64imafd
 
 
 for arg in "$@"
@@ -48,7 +49,6 @@ else
 fi
 git checkout ${COMMIT}
 git submodule update --init --recursive
-
 
 ########################################
 # patch for support of FGMP instructions
