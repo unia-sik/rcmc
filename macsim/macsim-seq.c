@@ -658,25 +658,13 @@ void process_line(char command, char *argument)
     case 'q': // quit
     {
         rank_t r;
-        cycle_t minExecTime = INT32_MAX;
-        cycle_t maxExecTime = 0;
-        cycle_t totalExecTime = 0;
+        cycle_t exectime = 0;
         noc_destroy_all(nodes, conf_max_rank);
         for (r=0; r<conf_max_rank; r++) {
-            if (nodes[r]->exit_cycle < minExecTime) {
-                minExecTime = nodes[r]->exit_cycle;
-            }
-            if (maxExecTime < nodes[r]->exit_cycle) {
-                maxExecTime = nodes[r]->exit_cycle;
-            }
-            totalExecTime += nodes[r]->exit_cycle;
-
+            if (nodes[r]->cycle > exectime) exectime = nodes[r]->cycle;
             core_finish_context(nodes[r]);
         }
-        printf("\nMax. Execution Time: %lu cycles\n", maxExecTime);
-        printf("Min. Execution Time: %lu cycles\n", minExecTime);
-        printf("Total Execution Time: %lu cycles\n", totalExecTime);
-        printf("Avg. Execution Time: %f cycles\n", (double)totalExecTime / conf_max_rank);
+        printf("\nExecution Time: %lu cycles\n", exectime);
         for (r=0; r<MAX_RANK; r++) {
             free(nodes[r]);
         }

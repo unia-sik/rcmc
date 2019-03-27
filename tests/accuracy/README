@@ -6,12 +6,15 @@ make
 -------------------
 Compile benchmarks for the FPGA to build/. The sources are from rcmc/sw/tests/ and
 rcmc/sw/benchmarks/
+ARCH= must be given for the ISA.
 
 
 cmp.sh
 ----------
 Simulate an ELF file with MacSim and GHDL and compare the execution.
 Different working directories are possible to allow parallel execution.
+Prerequisites: MacSim and shexdump must be build and GHDL installed.
+
 
 
 cmp_multiple.sh

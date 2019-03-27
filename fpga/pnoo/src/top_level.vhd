@@ -5,14 +5,14 @@ use ieee.numeric_std.all;
 USE WORK.LIBNODE.ALL;
 
 
-ENTITY top_level IS
+ENTITY noc IS
   PORT (
             --KEY        : IN STD_LOGIC_VECTOR(3 DOWNTO 0);
             --CLOCK_50    : IN STD_LOGIC;
             LEDR        : OUT STD_LOGIC_VECTOR((cntNoJoke - 1) DOWNTO 0));
 END;
 
-ARCHITECTURE STRUCTURE OF top_level IS
+ARCHITECTURE STRUCTURE OF noc IS
 
 component NOCUNIT
 generic (id : integer; count : integer; nocdim : STD_LOGIC_VECTOR(63 downto 0));
@@ -35,13 +35,13 @@ PORT (
     );
 END component;
 
-component sim_clock
-    port(clk : out std_logic);
-end component;
 
-component sim_reset
-    port(rst_n : out std_logic);
-end component;
+  component sim_clock
+    port(
+      rst_n : out std_logic;
+      clk : out std_logic
+    );
+  end component;
 
 SIGNAL CLOCK_50 : std_logic;
 SIGNAL RST_N : std_logic;
@@ -64,15 +64,10 @@ SIGNAL N_XX_RDY_IN_2 : VECTOR_PORT_RDY((cntNoJoke - 1) downto 0);
 
 begin
 
-CLOCK : sim_clock
-port map(
+  CLOCK : sim_clock port map(
+    rst_n => RST_N,
     clk => CLOCK_50
-);
-
-RESET : sim_reset
-port map(
-    rst_n => RST_N
-);
+  );
 
 -- nodeCluster: 
 NODE_Y: for y in 0 to (dimNoJoke - 1) generate		--(dimNoJoke - 1)
