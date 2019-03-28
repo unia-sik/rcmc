@@ -41,6 +41,7 @@ done
 if [ -d risc-gnu-toolchain/.git ]
 then
     cd riscv-gnu-toolchain
+    git fetch --all
     git reset --hard origin/master
 else
     rm -rf riscv-gnu-toolchain

@@ -31,7 +31,7 @@ int *__errno()
 
 
 
-int close(int file) 
+int _close(int file) 
 {
     return -1; 
 }
@@ -44,36 +44,36 @@ int _fini(int file)
 }
 */
 
-int fstat(int file, struct stat *st) 
+int _fstat(int file, struct stat *st) 
 {
     return 0;
 }
 
-long getpid()
-{
-    return 0;
-}
-
-
-int gettimeofday(struct timeval *p, void *z)
+long _getpid()
 {
     return 0;
 }
 
 
-int isatty(int file) 
+int _gettimeofday(struct timeval *p, void *z)
+{
+    return 0;
+}
+
+
+int _isatty(int file) 
 {
     return 1; 
 }
 
 
-long kill(int pid, int sig)
+long _kill(int pid, int sig)
 {
     return 0;
 }
 
 
-int lseek(int file, int ptr, int dir) 
+int _lseek(int file, int ptr, int dir) 
 {
     return 0;
 }
@@ -86,7 +86,7 @@ int _open(const char *name, int flags, int mode)
 }
 */
 
-int read(int file, char *ptr, int len) 
+int _read(int file, char *ptr, int len) 
 {
     return 0;
 }
@@ -97,7 +97,7 @@ char *heap_top = 0;
 extern char __end__; // from linker
 extern char __heap_top; // from linker
 
-caddr_t sbrk(int incr) 
+caddr_t _sbrk(int incr) 
 {
     if (heap_end == 0) heap_end = &__end__;
 
@@ -116,7 +116,7 @@ caddr_t sbrk(int incr)
 }
 
 
-long write(int file, char *buf, long nbytes)
+long _write(int file, char *buf, long nbytes)
 {
     int i;
     for (i=0; i<nbytes; i++)

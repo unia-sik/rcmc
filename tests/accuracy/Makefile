@@ -37,7 +37,7 @@ E_BENCH = $(S_BENCH:%=$(DIR_BUILD)bench_%.$(ARCH).elf)
 
 
 
-all: $(DIR_BUILD) $(E_RV64UI) $(E_SEQ) $(E_MPI) $(E_FGMP) $(E_4X4) $(E_BENCH)
+all: libraries $(DIR_BUILD) $(E_RV64UI) $(E_SEQ) $(E_MPI) $(E_FGMP) $(E_4X4) $(E_BENCH)
 
 $(DIR_BUILD)rv64ui_%.$(ARCH).elf: $(DIR_RISCVTESTS)rv64ui/%.S
 	$(CC) -T$(DIR_RISCVTESTS)link.ld -nostdlib -o $@ $^ -I$(DIR_RISCVTESTS) -I$(DIR_RISCVTESTS)macros/scalar
@@ -81,6 +81,10 @@ $(DIR_BUILD)bench_bitonic_sort.$(ARCH).elf: $(RCMC_ROOT)sw/benchmarks/src/bitoni
 
 clean:
 	-rm -rf $(DIR_BUILD)
+
+# build arch specific libraries
+libraries:
+	make -C $(RCMC_ROOT)sw/lib/arch/$(ARCH)
 
 $(DIR_BUILD):
 	-mkdir $(DIR_BUILD)

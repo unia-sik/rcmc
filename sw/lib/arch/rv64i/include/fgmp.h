@@ -8,7 +8,7 @@
 
 
 // uncomment to use newer PIMP-2 instructions
-//#define NEW_PIMP
+#define NEW_PIMP
 
 // set if assembler supports FGMP instructions directly:
 #define ASSEMBLER_SUPPORT
@@ -64,27 +64,34 @@ static inline coordinates_t fgmp_get_nocdim()
 
 
 // ---------------------------------------------------------------------
-// new PIMP
+// PIMP-3
 // ---------------------------------------------------------------------
 
 #ifdef NEW_PIMP
 
 static inline void fgmp_recv_wait()
 {
+    asm volatile (".insn sb 0x7b, 2, x0, x0, 0\n\t"); // bre $
+/*
 #ifdef ASSEMBLER_SUPPORT
     asm volatile ("1: bre 1b\n\t" : : );
 #else
 #endif
+*/
 }
 
 
 static inline cid_t fgmp_recv_node()
 {
     cid_t sender;
+    asm volatile ( ".insn r 0x5b, 2, 0, %0, x0, x0\n\t" : "=r" (sender) : );
+        // rcvn sender
+/*
 #ifdef ASSEMBLER_SUPPORT
     asm volatile ( "rcvn %0\n\t" : "=r" (sender) : );
 #else
 #endif
+*/
     return sender;
 }
 
@@ -92,10 +99,14 @@ static inline cid_t fgmp_recv_node()
 static inline flit_t fgmp_recv_payload()
 {
     flit_t flit;
+    asm volatile ( ".insn r 0x5b, 3, 0, %0, x0, x0\n\t" : "=r" (flit) : );
+        // rcvp flit
+/*
 #ifdef ASSEMBLER_SUPPORT
     asm volatile ( "rcvp %0\n\t" : "=r" (flit) : );
 #else
 #endif
+*/
     return flit;
 }
 
@@ -106,7 +117,7 @@ static inline long fgmp_recv_empty()
 #ifdef ASSEMBLER_SUPPORT
     asm volatile (
         "li %0, 0\n\t"
-        "brne 1f\n\t"
+        ".insn sb 0x7b, 3, x0, x0, 1f\n\t" // bre 1f
         "li %0, 1\n\t"
         "1:\n\t"
         : "=r" (flag));
@@ -117,7 +128,7 @@ static inline long fgmp_recv_empty()
 
 
 // ---------------------------------------------------------------------
-// wrapper for old PIMP
+// wrapper for PIMP-2
 // ---------------------------------------------------------------------
 
 
@@ -131,7 +142,7 @@ static inline long fgmp_cong()
 #ifdef ASSEMBLER_SUPPORT
     asm volatile (
         "li %0, 1\n\t"
-        "bsf 1f\n\t"
+        ".insn sb 0x7b, 0, x0, x0, 1f\n\t" // bsf 1f
         "li %0, 0\n\t"
         "1:\n\t"
         : "=r" (flag));
@@ -150,8 +161,8 @@ static inline cid_t fgmp_any()
 
     asm volatile (
         "li %0, -1\n\t"
-        "bre 1f\n\t"
-        "rcvn %0\n\t"
+        ".insn sb 0x7b, 2, x0, x0, 1f\n\t" // bre 1f
+        ".insn r 0x5b, 2, 0, %0, x0, x0\n\t" // rcvn %0
         "1:\n\t"
         : "=r" (cid));
 #endif
@@ -168,6 +179,11 @@ static inline cid_t fgmp_any()
 
 static inline void fgmp_send_flit(cid_t dest, flit_t flit)
 {
+    asm volatile (
+        "1: .insn sb 0x7b, 0, x0, x0, 1b\n\t" // bsf $
+        ".insn r 0x5b, 0, 0, x0, %0, %1\n\t" // snd %0, %1
+        : : "r" (dest), "r" (flit) );
+/*
 #ifdef ASSEMBLER_SUPPORT
 //    asm volatile ( "send %0, %1\n\t" : : "r" (dest), "r" (flit) );
     asm volatile (
@@ -176,6 +192,7 @@ static inline void fgmp_send_flit(cid_t dest, flit_t flit)
         : : "r" (dest), "r" (flit) );
 #else
 #endif
+*/
 }
 
 
@@ -224,7 +241,7 @@ static inline long fgmp_probe(cid_t source)
 #else
 
 // ---------------------------------------------------------------------
-// new PIMP
+// PIMP-2
 // ---------------------------------------------------------------------
 
 

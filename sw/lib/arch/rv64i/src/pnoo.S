@@ -1,3 +1,51 @@
+
+.macro  snd     rs1, rs2
+        .insn   r 0x5b, 0, 0, x0, \rs1, \rs2
+.endm
+
+.macro  srdy    rs1
+        .insn   r 0x5b, 1, 0, x0, \rs1, x0
+.endm
+
+.macro  rcvn    rd
+        .insn   r 0x5b, 2, 0, \rd, x0, x0
+.endm
+
+.macro  rcvp    rd
+        .insn   r 0x5b, 3, 0, \rd, x0, x0
+.endm
+
+.macro  bsf     label
+        .insn   sb 0x7b, 0, x0, x0, \label
+.endm
+
+.macro  bsnf    label
+        .insn   sb 0x7b, 1, x0, x0, \label
+.endm
+
+.macro  bre     label
+        .insn   sb 0x7b, 2, x0, x0, \label
+.endm
+
+.macro  brne    label
+        .insn   sb 0x7b, 3, x0, x0, \label
+.endm
+
+.macro  br      rs1, label
+        .insn   sb 0x7b, 4, \rs1, x0, \label
+.endm
+
+.macro  bnr     rs1, label
+        .insn   sb 0x7b, 5, \rs1, x0, \label
+.endm
+
+
+
+
+
+
+
+
 #void pnoo_block_send(uint64_t dest, int n, void* data);
 #void pnoo_block_send_no_srdy(uint64_t dest, int n, void* data);
 .global pnoo_block_send
