@@ -22,7 +22,6 @@ cat <<EOL
 EOL
 
 echo ${GHDL} -a ${FLAGS} constants.vhd
-echo ${GHDL} -a ${FLAGS} dmem_ghdl.vhd
 echo ${GHDL} -a ${FLAGS} clock.vhd
 
 # common files
@@ -47,17 +46,7 @@ do
     echo ${GHDL} -a ${FLAGS} ${VHDL_PATH}/${FILE}.vhd
 done
 
+echo ${GHDL} -a ${FLAGS} dmem_ghdl.vhd
 
-# FIXME: should be generated
-for FILE in dmem_replacement
-do
-    echo ${GHDL} -a ${FLAGS} ${VHDL_PATH}/${FILE}.vhd
-done
-
-
-#for FILE in ${VHDL_PATH}/*.vhd
-#do
-#    echo ${GHDL} -a ${FLAGS} ${FILE}
-#done
-
-
+echo export GHDL_CYCLE_DRIFT=3
+echo export GHDL_COREID=generate

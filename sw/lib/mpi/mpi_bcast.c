@@ -13,7 +13,7 @@ int MPI_Bcast(void* buf, int count, MPI_Datatype datatype, int root,
         flit_t f = *ptr++;
         for (i=0; i<n; i++) {
             if (i!=root)
-                fgmp_send_flit(cid_from_comm(comm, i), f);
+                pimp2_send_flit(cid_from_comm(comm, i), f);
         }
 
         wait_for_ack(comm);
@@ -23,7 +23,7 @@ int MPI_Bcast(void* buf, int count, MPI_Datatype datatype, int root,
             len -=  sizeof(flit_t);
             for (i=0; i<n; i++) {
                 if (i!=root)
-                    fgmp_send_flit(cid_from_comm(comm, i), f);
+                    pimp2_send_flit(cid_from_comm(comm, i), f);
             }
         }
     } else {

@@ -205,6 +205,7 @@ void marek_array_write_suffix(FILE *f, unsigned bytewidth, unsigned blocklen)
 }
 
 
+/*
 void marek_vector_write_prefix(FILE *f, unsigned bytewidth, unsigned blocklen)
 {
     fprintf(f, "LIBRARY ieee;\n"
@@ -261,6 +262,136 @@ void marek_vector_write_suffix(FILE *f, unsigned bytewidth, unsigned blocklen)
 "end package body;");
 
 }
+*/
+
+
+void marek_vector_write_prefix(FILE *f, unsigned bytewidth, unsigned blocklen)
+{
+    fprintf(f,
+        "LIBRARY ieee;\n"
+        "USE ieee.std_logic_1164.all;\n"
+        "use ieee.numeric_std.all;\n"
+        "use work.libproc.all;\n"
+        "\n"
+        "ENTITY dmem IS\n"
+        "  PORT\n"
+        "  (\n"
+        "  Rst   : IN std_logic;\n"
+        "  clk   : in  std_logic;\n"
+        "  ici   : in  icache_in_type;\n"
+        "  ico   : out icache_out_type;\n"
+        "  dci   : in  dcache_in_type;\n"
+        "  dco   : out dcache_out_type;\n"
+        "  clken : in  std_logic\n"
+        "  );\n"
+        "END dmem;\n"
+        "\n"
+        "ARCHITECTURE SYN OF dmem IS\n"
+        "\n"
+        "type MEM is array (0 to %d) of bit_vector(7 downto 0);\n"
+        "constant INITB : bit_vector(0 to %d) := x\"",
+        blocklen-1, 8*blocklen-1);
+}
+
+
+void marek_vector_write_block(FILE *f, unsigned bytewidth, unsigned blocklen,
+    uint_fast32_t addr, const unsigned char *buf, uint_fast32_t len)
+{
+    uint_fast32_t i;
+    
+    for (i=0; i<len; i+=bytewidth) {
+        unsigned long long u = *(unsigned long long *)(&buf[i]);
+        fprintf(f, "%0*llx",2*bytewidth, u & ((1LL<<(8*bytewidth))-1));
+        addr++;
+    }
+    while ( i < blocklen) {
+	    fprintf(f, "00");
+	    addr++;
+	    i++;
+    }
+}
+
+
+void marek_vector_write_suffix(FILE *f, unsigned bytewidth, unsigned blocklen)
+{
+    fprintf(f, "\";\n"
+"\n"
+"    function init_mem(content : bit_vector) return MEM is\n"
+"        variable tmp : MEM;\n"
+"        variable i : integer := 0;\n"
+"        variable j : integer := 0;\n"
+"        begin\n"
+"            for X in content\'range loop\n"
+"                tmp(i)(7-j) := content(X);\n"
+"                j := j + 1;\n"
+"                if (j = 8) then\n"
+"                    i := i + 1;\n"
+"                    j := 0;\n"
+"                end if;\n"
+"            end loop;\n"
+"            return tmp;\n"
+"    end function;\n"
+"\n"
+"constant INITA : MEM := init_mem(INITB);\n"
+
+        "  SIGNAL Registers : MEM := INITA;\n"
+        "\n"
+        "begin\n"
+        "  process(clk)\n"
+        "  variable i : integer;\n"
+        "  begin\n"
+        "    if clken = '1' then\n"
+        "      i := to_integer(unsigned(ici.addr(23 downto 2)))*4;\n"
+        "      ico.data <= to_stdlogicvector(\n"
+        "      Registers(i+3)\n"
+        "      &Registers(i+2)\n"
+        "      &Registers(i+1)\n"
+        "      &Registers(i)\n"
+        "      );\n"
+        "      i := to_integer(unsigned(dci.addr(23 downto 3)))*8;\n"
+        "      if i + 7 < %d then --131072\n"
+        "        if dci.we = '1' then\n"
+        "          if dci.byteen(7) = '1' then\n"
+        "            Registers(i+7) <= to_bitvector(dci.wdata(63 downto 56));\n"
+        "          end if;\n"
+        "          if dci.byteen(6) = '1' then\n"
+        "            Registers(i+6) <= to_bitvector(dci.wdata(55 downto 48));\n"
+        "          end if;\n"
+        "          if dci.byteen(5) = '1' then\n"
+        "            Registers(i+5) <= to_bitvector(dci.wdata(47 downto 40));\n"
+        "          end if;\n"
+        "          if dci.byteen(4) = '1' then\n"
+        "            Registers(i+4) <= to_bitvector(dci.wdata(39 downto 32));\n"
+        "          end if;\n"
+        "          if dci.byteen(3) = '1' then\n"
+        "            Registers(i+3) <= to_bitvector(dci.wdata(31 downto 24));\n"
+        "          end if;\n"
+        "          if dci.byteen(2) = '1' then\n"
+        "            Registers(i+2) <= to_bitvector(dci.wdata(23 downto 16));\n"
+        "          end if;\n"
+        "          if dci.byteen(1) = '1' then\n"
+        "            Registers(i+1) <= to_bitvector(dci.wdata(15 downto 8));\n"
+        "          end if;\n"
+        "          if dci.byteen(0) = '1' then\n"
+        "            Registers(i+0) <= to_bitvector(dci.wdata(7 downto 0));\n"
+        "          end if;\n"
+        "        end if;\n"
+        "        dco.rdata <= to_stdlogicvector(Registers(i+7)&Registers(i+6)&Registers(i+5)&Registers(i+4)\n"
+        "          &Registers(i+3)&Registers(i+2)&Registers(i+1)&Registers(i+0));\n"
+        "      else\n"
+        "        dco.rdata <= (others => '0');\n"
+        "      end if;\n"
+        "    end if;\n"
+        "  end process;\n"
+        "end SYN;\n",
+        blocklen);
+}
+
+
+
+
+
+
 
 
 

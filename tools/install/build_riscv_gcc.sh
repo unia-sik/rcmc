@@ -54,9 +54,9 @@ git submodule update --init --recursive
 ########################################
 # patch for support of FGMP instructions
 ########################################
-cd riscv-binutils-gdb
-../../modify_fgmp.sh
-cd ..
+#cd riscv-binutils-gdb
+#../../modify_fgmp.sh
+#cd ..
 
 
 ############################

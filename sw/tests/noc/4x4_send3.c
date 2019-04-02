@@ -16,11 +16,11 @@ int main(int argc, char *argv[]) {
   }
 
   for (int i = 0; i < 12; i++) {
-    fgmp_send_flit(prev_cid, 123);
+    pimp2_send_flit(prev_cid, 123);
   }
 
   for (int i = 0; i < 12; i++) {
-    fgmp_recv_flit(next_cid);
+    pimp2_recv_flit(next_cid);
   }
 
   Debug('k');

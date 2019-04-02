@@ -47,3 +47,6 @@ done
 echo ${GHDL} -a ${FLAGS} dmem_ghdl.vhd
 echo ${GHDL} -a ${FLAGS} NoC.vhd
 echo ${GHDL} -a ${FLAGS} clock.vhd
+
+# Cycle difference between MacSim and GHDL simulation
+echo "export GHDL_CYCLE_DRIFT=8"

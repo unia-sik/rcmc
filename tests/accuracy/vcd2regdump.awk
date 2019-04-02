@@ -1,7 +1,16 @@
 #!/usr/bin/awk -f
 
 BEGIN {
-    cycle = -8          # ignore first 8 cycles (don't know why)
+    if (coreid != "generate" && coreid != "nocunit") {
+        printf "Unknown method to determine core ID";
+        exit 1;
+    }
+    width = 4 
+        # Noc width
+    cycle = - drift
+        # from comand line "awk -v drift=3 -f vcdregdump.awk"
+        # core1, core2: -8
+        # pnoo: -3
     clock = "UNDEF"
     depth = 0
     core = 0            # on a single core there is no nocunit => core=0
@@ -9,18 +18,33 @@ BEGIN {
 
 
 /^\$scope module [^ ]+ \$end$/ {
-    depth++
-    scope[depth] = $3
+    depth++;
+    scope[depth] = $3;
 
-    if ($3 ~ /^nocunit/) {
-        i=22;
-        core=0;
-        while (1) {
-            digit = substr($0, i, 1);
-            i++;
-            if (digit=="0") {core=2*core}
-            else if (digit=="1") {core=2*core+1}
-            else break;
+    if (coreid == "nocunit") {
+        if ($3 ~ /^nocunit/) {
+            i=22;
+            core=0;
+            while (1) {
+                digit = substr($0, i, 1);
+                i++;
+                if (digit=="0") {core=2*core}
+                else if (digit=="1") {core=2*core+1}
+                else break;
+            }
+        }
+    } else if (coreid == "generate") {
+        if ($3 ~ /\([0-9]+\)/) {
+            # $scope module ( )
+            i = substr(substr($3, 1, length($3)-1), 2);
+            if (depth==1) {
+                core_y = i
+                core_x = 0;
+                core = -1
+            } else if (depth==2) {
+                core = core_y*width + i;
+            }
+            #printf "module (%d) depth %d => core %d\n", i, depth, core
         }
     }
 }

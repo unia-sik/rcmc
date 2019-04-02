@@ -5,7 +5,7 @@
 
 static inline unsigned recv_flit(cid_t cid, flit_t **ptr, unsigned *len)
 {
-    flit_t f = fgmp_recv_flit(cid);
+    flit_t f = pimp2_recv_flit(cid);
     if (*len<sizeof(flit_t)) {
         unsigned l = *len;
         store_flit_fraction(*ptr, l, f);
@@ -22,7 +22,7 @@ static inline unsigned recv_flit(cid_t cid, flit_t **ptr, unsigned *len)
 
 static inline unsigned send_flit(cid_t cid, flit_t **ptr, unsigned *len)
 {
-    fgmp_send_flit(cid, unaligned_load_flit(*ptr));
+    pimp2_send_flit(cid, unaligned_load_flit(*ptr));
     (*ptr)++;
     if (*len<sizeof(flit_t)) {
         unsigned l = *len;
@@ -86,7 +86,7 @@ static void alltoall(
             // Special case: data is one flit or less
             // Therefore process 1 already received all data from core 0
             // and this flit must be ignored
-            fgmp_recv_flit(cid_from_comm(comm, 0)); 
+            pimp2_recv_flit(cid_from_comm(comm, 0)); 
         } else {
             rlen_total -= recv_flit(cid_from_comm(comm, 0), &rptrs[0], &rlens[0]);
         }
@@ -103,7 +103,7 @@ static void alltoall(
         }
         recv_rank++;
 */
-        cid_t rcid = fgmp_any();
+        cid_t rcid = pimp2_any();
         if (rcid>=0) {
             int rrank = rank_in_comm(comm, rcid);
             rlen_total -= recv_flit(rcid, &rptrs[rrank], &rlens[rrank]);

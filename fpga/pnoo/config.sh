@@ -8,6 +8,7 @@
 # Noc.vhd               Wiring for connecting the nodes
 # dmem_ghdl.vhd         Preinitialised memory
 # ghdl_analyze.sh       Script to analyse the manycore with GHDL
+# ghdl_convert.sh       Script to convert GHDL output (.vcd) to MacSim regdump
 # clock.vhd             Clock signal for GHDL
 
 
@@ -26,6 +27,11 @@ $MYDIR/../../tools/shexdump/shexdump -V $5 1 $4 > dmem_ghdl.vhd
 
 $MYDIR/gen_ghdl.sh > ghdl_analyze.sh
 chmod 775 ghdl_analyze.sh
+
+echo "#!/bin/sh" > ghdl_convert.sh
+echo "awk -v drift=3 cid=generate -f vcd2regdump.awk \$1" >> ghdl_convert.sh
+chmod 775 ghdl_convert.sh
+
 
 cat <<EOL > clock.vhd
 LIBRARY ieee;

@@ -40,7 +40,7 @@ int MPI_Gatherv(void* sbuf, int scount, MPI_Datatype stype, void* rbuf,
         memcpy(rbuf + rdisps[root]*rlen, sbuf, scount*slen);
     } else {
         cid_t root_cid = cid_from_comm(comm, root);
-        flit_t f = fgmp_recv_flit(root_cid); // wait until root is ready
+        flit_t f = pimp2_recv_flit(root_cid); // wait until root is ready
         assert(f==ACK_FLIT);
         send_raw(root_cid, scount*slen, sbuf);
     }

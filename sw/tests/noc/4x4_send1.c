@@ -16,14 +16,14 @@ int main(int argc, char *argv[]) {
   }
 
   if (cid == 0) {
-    fgmp_send_flit(next_cid, 123);
-    flit_t data = fgmp_recv_flit(prev_cid);
+    pimp2_send_flit(next_cid, 123);
+    flit_t data = pimp2_recv_flit(prev_cid);
     if (data == 123) {
       test_result(true);
     }
   } else {
-    flit_t data = fgmp_recv_flit(prev_cid);
-    fgmp_send_flit(next_cid, data);
+    flit_t data = pimp2_recv_flit(prev_cid);
+    pimp2_send_flit(next_cid, data);
     test_result(true);
   }
 

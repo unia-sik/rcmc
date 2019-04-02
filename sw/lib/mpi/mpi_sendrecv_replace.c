@@ -13,13 +13,13 @@ int MPI_Sendrecv_replace(void *buf, int count, MPI_Datatype datatype, int dest,
     cid_t rcid = cid_from_comm(comm, source);
 
     int slen = count * sizeof_mpi_datatype(datatype);
-    fgmp_send_flit(scid, headflit_from_tag_and_len(stag, slen));
+    pimp2_send_flit(scid, headflit_from_tag_and_len(stag, slen));
 
-    flit_t f = fgmp_recv_flit(rcid);
+    flit_t f = pimp2_recv_flit(rcid);
     if (scid!=rcid) {
         // no ack if send destination and receive source are the same
-        fgmp_send_flit(rcid, ACK_FLIT);
-        flit_t g = fgmp_recv_flit(scid);
+        pimp2_send_flit(rcid, ACK_FLIT);
+        flit_t g = pimp2_recv_flit(scid);
         assert(g==ACK_FLIT);
     } else if (scid==comm->rank) return MPI_SUCCESS;
 
@@ -39,7 +39,7 @@ int MPI_Sendrecv_replace(void *buf, int count, MPI_Datatype datatype, int dest,
     while (slen>0) {
         // send a flit whenever the send buffer is not full
         if (!fgmp_cong()) {
-            fgmp_send_flit(scid, *sptr++);
+            pimp2_send_flit(scid, *sptr++);
             slen -= sizeof(flit_t);
             // if receiving is ahead of sendig, remove flit from ringbuffer
             if (ringbuf_free<MAX_RINGBUF) {
@@ -50,8 +50,8 @@ int MPI_Sendrecv_replace(void *buf, int count, MPI_Datatype datatype, int dest,
         }
 
         // don't receive last flit, if it is only partly used
-        if ((rlen>=sizeof(flit_t)) && (ringbuf_free!=0) && fgmp_probe(rcid)) {
-            f = fgmp_recv_flit(rcid);
+        if ((rlen>=sizeof(flit_t)) && (ringbuf_free!=0) && pimp2_probe(rcid)) {
+            f = pimp2_recv_flit(rcid);
             rlen -= sizeof(flit_t);
             if ((ringbuf_free<MAX_RINGBUF) || (rptr>=sptr)) {
                 ringbuf[(ringbuf_first+MAX_RINGBUF-ringbuf_free) % MAX_RINGBUF]

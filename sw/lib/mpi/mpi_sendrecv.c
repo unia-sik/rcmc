@@ -10,13 +10,13 @@ int MPI_Sendrecv(void *sbuf, int scount, MPI_Datatype stype, int dest, int stag,
     cid_t rcid = cid_from_comm(comm, source);
 
     int slen = scount * sizeof_mpi_datatype(stype);
-    fgmp_send_flit(scid, headflit_from_tag_and_len(stag, slen));
+    pimp2_send_flit(scid, headflit_from_tag_and_len(stag, slen));
 
-    flit_t f = fgmp_recv_flit(rcid);
+    flit_t f = pimp2_recv_flit(rcid);
     if (scid!=rcid) {
         // no ack if send destination and receive source are the same
-        fgmp_send_flit(rcid, ACK_FLIT);
-        flit_t g = fgmp_recv_flit(scid);
+        pimp2_send_flit(rcid, ACK_FLIT);
+        flit_t g = pimp2_recv_flit(scid);
         assert(g==ACK_FLIT);
     }
 
@@ -32,13 +32,13 @@ int MPI_Sendrecv(void *sbuf, int scount, MPI_Datatype stype, int dest, int stag,
     while (slen>0) {
         // send a flit whenever the send buffer is not full
         if (!fgmp_cong()) {
-            fgmp_send_flit(scid, *sptr++);
+            pimp2_send_flit(scid, *sptr++);
             slen -= sizeof(flit_t);
         }
 
         // don't receive last flit, if it is only partly used
-        if ((rlen>=sizeof(flit_t)) && fgmp_probe(rcid)) {
-            *rptr++ = fgmp_recv_flit(rcid);
+        if ((rlen>=sizeof(flit_t)) && pimp2_probe(rcid)) {
+            *rptr++ = pimp2_recv_flit(rcid);
             rlen -= sizeof(flit_t);
         }
     }

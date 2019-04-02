@@ -29,7 +29,7 @@ MPI_Comm fgmp_def_collection(int *colors)
     // count threads in my collection
     cid_t i, n, new_rank=0;
     cid_t max_cid = fgmp_get_max_cid();
-    cid_t my_cid = fgmp_get_cid();
+    cid_t my_cid = pimp2_get_cid();
     int my_color = colors[my_cid];
 
     n=0;
@@ -67,7 +67,7 @@ MPI_Comm fgmp_comm_world(int n)
         + (n-1)*sizeof(((mpi_group_t *)0)->cids[0])); // hardcoded!
       // TODO: malloc error handling
 
-    c->rank = fgmp_get_cid();
+    c->rank = pimp2_get_cid();
     c->group.size = n;
     for (i=0; i<n; i++) c->group.cids[i] = i;
     return c;

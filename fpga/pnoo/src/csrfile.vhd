@@ -121,7 +121,7 @@ begin
 				csro.rdata(31 downto 0)  <= cycle(63 downto 32);
 			when CSR_FGMP_MAXCID =>
 				csro.rdata <= std_logic_vector(to_unsigned(count, csro.rdata'length));
-			when CSR_FGMP_CID =>
+			when CSR_FGMP_XYZ =>
 				csro.rdata <= std_logic_vector(to_unsigned(id, csro.rdata'length));
 			when CSR_FGMP_NOCDIM =>
 				csro.rdata <= nocdim;

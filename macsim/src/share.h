@@ -39,6 +39,19 @@ typedef union {
     double f;
 } uf64_t;
 
+static inline unsigned long float_raw(float f)
+{
+    uf32_t u;
+    u.f = f;
+    return u.u;
+}
+
+static inline unsigned long long double_raw(double f)
+{
+    uf64_t u;
+    u.f = f;
+    return u.u;
+}
 
 #define BITRANGE(v,h,l)		(((v)>>(l))&((1<<((h)-(l)+1))-1))
 #define BITRANGE_S(v,h,l)	((((int32_t)(v))<<(31-(h)))>>(31-(h)+(l))) 

@@ -24,8 +24,6 @@ FLAGS="--ieee=synopsys"
 
 
 
-
-
 # use pwd to get absolute paths
 MYDIR=$(dirname $0)
 GHDL="$(pwd)/${MYDIR}/../../tools/ghdl/bin/ghdl"
@@ -79,7 +77,7 @@ echo "${COL_MSG} ($((TIME_MACSIM-TIME_START)) seconds)${COL_NONE} simulated time
 # GHDL analysis
 printf "GHDL analysis"
 ${COREDIR}/config.sh ${WIDTH} ${ROUTER} ${CORNERBUF} ${MEMORY_SIZE} ${ELF}
-./ghdl_analyze.sh
+. ./ghdl_analyze.sh # set also GHDL_CYCLE_DRIFT and GHDL_COREID
 ${GHDL} -e ${FLAGS} NoC
 
 
@@ -87,7 +85,7 @@ ${GHDL} -e ${FLAGS} NoC
 TIME_ANALYSIS=$(date +%s)
 echo "${COL_MSG} ($((TIME_ANALYSIS-TIME_MACSIM)) seconds)${COL_NONE}"
 printf "GHDL simulation"
-${GHDL} -r ${FLAGS} NoC --stop-time=$(($MACSIM_CYCLES+9))ns --vcd=ghdl.vcd 2> ghdl.log
+${GHDL} -r ${FLAGS} NoC --stop-time=$(($MACSIM_CYCLES+1+$GHDL_CYCLE_DRIFT))ns --vcd=ghdl.vcd 2> ghdl.log
 cd ..
 
 
@@ -97,7 +95,8 @@ printf "${COL_MSG} ($((TIME_SIM-TIME_ANALYSIS)) seconds = "
 echo "$(( MACSIM_CYCLES / (TIME_SIM-TIME_ANALYSIS) )) cycles/second)${COL_NONE}"
 
 printf "Converting VCD to regdump"
-awk -f vcd2regdump.awk ${WORKDIR}/ghdl.vcd > ${WORKDIR}/ghdl.regdump
+#./ghdl_convert.sh ${WORKDIR}/ghdl.vcd > ${WORKDIR}/ghdl.regdump
+awk -v drift=${GHDL_CYCLE_DRIFT} -v coreid=${GHDL_COREID} -f vcd2regdump.awk ${WORKDIR}/ghdl.vcd > ${WORKDIR}/ghdl.regdump
 TIME_CONV=$(date +%s)
 echo "${COL_MSG} ($((TIME_CONV-TIME_SIM)) seconds)${COL_NONE}"
 

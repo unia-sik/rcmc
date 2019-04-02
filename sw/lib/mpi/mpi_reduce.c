@@ -103,7 +103,7 @@ int MPI_Reduce(const void *sbuf, void *rbuf, int count, MPI_Datatype type,
         _mpi_reduce(sbuf, rbuf, count, type, op, root, comm);
     } else {
         cid_t root_cid = cid_from_comm(comm, root);
-        flit_t f = fgmp_recv_flit(root_cid); // wait until root is ready
+        flit_t f = pimp2_recv_flit(root_cid); // wait until root is ready
         assert(f==ACK_FLIT);
         send_raw(root_cid, len, sbuf);
     }
@@ -128,7 +128,7 @@ int MPI_Allreduce(const void *sbuf, void *rbuf, int count, MPI_Datatype type,
 
     } else {
         cid_t root_cid = cid_from_comm(comm, 0);
-        flit_t f = fgmp_recv_flit(root_cid); // wait until root is ready
+        flit_t f = pimp2_recv_flit(root_cid); // wait until root is ready
         assert(f==ACK_FLIT);
         send_raw(root_cid, len, sbuf);
         recv_raw(root_cid, len, rbuf); // scatter

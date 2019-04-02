@@ -17,7 +17,7 @@ int MPI_Init(int *argc, char ***argv)
     for (i=0; i<MAX_REQUESTS; i++)
         request_slot[i].used = 0;
 
-    mpi_comm_world.rank = fgmp_get_cid();
+    mpi_comm_world.rank = pimp2_get_cid();
     mpi_comm_world.group.size = fgmp_get_max_cid();
     mpi_comm_world.group.cids[0] = 0;
     return MPI_SUCCESS;

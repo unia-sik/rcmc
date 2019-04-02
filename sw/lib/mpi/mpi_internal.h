@@ -77,7 +77,7 @@ static inline size_t sizeof_mpi_datatype(MPI_Datatype datatype)
 static inline void send_raw(cid_t dest, int len, const flit_t *buf)
 {
     while (len>0) {
-        fgmp_send_flit(dest, *buf++);
+        pimp2_send_flit(dest, *buf++);
         len -= sizeof(flit_t);
     }
 }
@@ -85,12 +85,12 @@ static inline void send_raw(cid_t dest, int len, const flit_t *buf)
 
 static inline void send_acked(cid_t dest, int len, const flit_t *buf)
 {
-    fgmp_send_flit(dest, *buf++);
-    flit_t f = fgmp_recv_flit(dest);
+    pimp2_send_flit(dest, *buf++);
+    flit_t f = pimp2_recv_flit(dest);
     assert(f==ACK_FLIT);
     len -= sizeof(flit_t);
     while (len>0) {
-        fgmp_send_flit(dest, *buf++);
+        pimp2_send_flit(dest, *buf++);
         len -= sizeof(flit_t);
     }
 }
@@ -153,25 +153,25 @@ static inline void recv_raw(cid_t source, unsigned len, flit_t *buf)
     //assert(len > 0);
     if (len==0) return;
     while (len>sizeof(flit_t)) {
-        *buf++ = fgmp_recv_flit(source);
+        *buf++ = pimp2_recv_flit(source);
         len -= sizeof(flit_t);
     }
-    store_flit_fraction(buf, len, fgmp_recv_flit(source));
+    store_flit_fraction(buf, len, pimp2_recv_flit(source));
 }
 
 
 static inline void recv_acked(cid_t source, unsigned len, flit_t *buf)
 {
-    flit_t f = fgmp_recv_flit(source);
-    fgmp_send_flit(source, ACK_FLIT);
+    flit_t f = pimp2_recv_flit(source);
+    pimp2_send_flit(source, ACK_FLIT);
     if (len > sizeof(flit_t)) {
         *buf++ = f;
         len -= sizeof(flit_t);
         while (len>sizeof(flit_t)) {
-            *buf++ = fgmp_recv_flit(source);
+            *buf++ = pimp2_recv_flit(source);
             len -= sizeof(flit_t);
         }
-        f = fgmp_recv_flit(source);
+        f = pimp2_recv_flit(source);
     }
     store_flit_fraction(buf, len, f);
 }
@@ -186,11 +186,11 @@ static inline void broadcast_flit(MPI_Comm comm, flit_t f)
     if (comm==MPI_COMM_WORLD) {
         for (i=0; i<n; i++)
             if (i!=mpi_comm_world.rank)
-                fgmp_send_flit(i, f);
+                pimp2_send_flit(i, f);
     } else {
         for (i=0; i<n; i++)
             if (i!=comm->rank)
-                fgmp_send_flit(comm->group.cids[i], f);
+                pimp2_send_flit(comm->group.cids[i], f);
     }
 }
 
@@ -208,8 +208,8 @@ static inline void wait_for_ack(MPI_Comm comm)
         if (i>=n) i = 0;
         if (!ready[i]) {
             cid_t c = cid_from_comm(comm, i);
-            if (fgmp_probe(c)) {
-                flit_t f = fgmp_recv_flit(c);
+            if (pimp2_probe(c)) {
+                flit_t f = pimp2_recv_flit(c);
                 assert(f==ACK_FLIT);
                 ready[i] = true;
                 counter--;
@@ -222,24 +222,23 @@ static inline void wait_for_ack(MPI_Comm comm)
 static inline void gather(flit_t *buf_per_process[], unsigned lens[], unsigned total_len)
 {
     cid_t max_cid = mpi_comm_world.group.size;
-    cid_t i=0;
     cid_t ack=0;
 
     while (total_len>0) {
 
-#ifdef NEW_PIMP
+#ifndef OLD_PIMP2
         if (fgmp_recv_empty()) {
             // Tell every node in group to start by sending an ack flit.
             // Must be interleaved with receiving to avoid deadlock.
             if (ack<max_cid) {
                 if (lens[ack]==0) ack++;
                 else if (!fgmp_cong()) {
-                    fgmp_send_flit(ack, ACK_FLIT);
+                    fgmp_send_flit(fgmp_xyz_from_cid(ack), ACK_FLIT);
                     ack++;
                 }
             }
         } else {
-            i = fgmp_recv_node();
+            cid_t i = fgmp_cid_from_xyz(fgmp_recv_node());
             flit_t f = fgmp_recv_payload();
             if (lens[i]<sizeof(flit_t)) {
                 store_flit_fraction(buf_per_process[i], lens[i], f);
@@ -252,7 +251,8 @@ static inline void gather(flit_t *buf_per_process[], unsigned lens[], unsigned t
             }
         }
 #else
-        while (lens[i]==0 || fgmp_probe(i)==false) {
+        cid_t i=0;
+        while (lens[i]==0 || pimp2_probe(i)==false) {
             i++;
             if (i>=max_cid) i=0;
 
@@ -260,13 +260,13 @@ static inline void gather(flit_t *buf_per_process[], unsigned lens[], unsigned t
             // Must be interleaved with receiving to avoid deadlock.
             if (ack<max_cid) {
                 if (lens[ack]==0) ack++;
-                else if (!fgmp_cong()) {
-                    fgmp_send_flit(ack, ACK_FLIT);
+                else if (!pimp2_cong()) {
+                    pimp2_send_flit(ack, ACK_FLIT);
                     ack++;
                 }
             }
         }
-        flit_t f = fgmp_recv_flit(i);
+        flit_t f = pimp2_recv_flit(i);
         if (lens[i]<sizeof(flit_t)) {
             store_flit_fraction(buf_per_process[i], lens[i], f);
             total_len -= lens[i];

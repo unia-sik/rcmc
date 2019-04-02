@@ -12,7 +12,7 @@ int main(int argc, char *argv[]) {
   int cnt = 0;
 
   while (!fgmp_cong()) {
-    fgmp_send_flit(target, (cid << 32 | target << 16 | cnt++));
+    pimp2_send_flit(target, (cid << 32 | target << 16 | cnt++));
   }
 
   test_result(true);

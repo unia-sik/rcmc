@@ -353,8 +353,9 @@ package libeu is
 
 	-- custom FGPM CSRs (all read only)
 	constant CSR_FGMP_MAXCID : std_logic_vector(11 downto 0) := x"C70";
-   	constant CSR_FGMP_CID : std_logic_vector(11 downto 0)    := x"C71";
-   	constant CSR_FGMP_NOCDIM : std_logic_vector(11 downto 0) := x"C72";
+	constant CSR_FGMP_CID    : std_logic_vector(11 downto 0) := x"C71";
+	constant CSR_FGMP_NOCDIM : std_logic_vector(11 downto 0) := x"C72";
+	constant CSR_FGMP_XYZ    : std_logic_vector(11 downto 0) := x"C75";
 
 	constant CSR_SRET : std_logic_vector(11 downto 0) := x"800";
 

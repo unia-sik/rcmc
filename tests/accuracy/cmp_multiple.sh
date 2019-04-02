@@ -19,7 +19,7 @@ passed () {
 
 if [ $# -le 3 ]
 then
-    echo "Compare execution time for all given executables"
+    echo "Compare MacSim vs. VHDL simulation for all given executables"
     echo "Usage: $0 <core name> <noc width> <workdir> <RISC-V ELF files ...>"
     exit
 fi

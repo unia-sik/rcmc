@@ -173,6 +173,7 @@ static inline bool csr_valid(uint_fast32_t iw)
 
     case RISCV_CSR_MAXCID:
     case RISCV_CSR_CID:
+    case RISCV_CSR_XYZ:
     case RISCV_CSR_NOCDIM:
     case RISCV_CSR_SENDRDY:
     case RISCV_CSR_NEXTRECV:
@@ -2497,14 +2498,14 @@ void riscv_print_context(node_t *node)
                 "f4=%16lx (%g) f5=%16lx (%g)\n"
                 "f6=%16lx (%g) f7=%16lx (%g)\n", 
                 node->core.riscv.fcsr,
-                *(uint64_t *)(&node->core.riscv.freg[0]), node->core.riscv.freg[0],
-                *(uint64_t *)(&node->core.riscv.freg[1]), node->core.riscv.freg[1],
-                *(uint64_t *)(&node->core.riscv.freg[2]), node->core.riscv.freg[2],
-                *(uint64_t *)(&node->core.riscv.freg[3]), node->core.riscv.freg[3],
-                *(uint64_t *)(&node->core.riscv.freg[4]), node->core.riscv.freg[4],
-                *(uint64_t *)(&node->core.riscv.freg[5]), node->core.riscv.freg[5],
-                *(uint64_t *)(&node->core.riscv.freg[6]), node->core.riscv.freg[6],
-                *(uint64_t *)(&node->core.riscv.freg[7]), node->core.riscv.freg[7]
+                double_raw(node->core.riscv.freg[0]), node->core.riscv.freg[0],
+                double_raw(node->core.riscv.freg[1]), node->core.riscv.freg[1],
+                double_raw(node->core.riscv.freg[2]), node->core.riscv.freg[2],
+                double_raw(node->core.riscv.freg[3]), node->core.riscv.freg[3],
+                double_raw(node->core.riscv.freg[4]), node->core.riscv.freg[4],
+                double_raw(node->core.riscv.freg[5]), node->core.riscv.freg[5],
+                double_raw(node->core.riscv.freg[6]), node->core.riscv.freg[6],
+                double_raw(node->core.riscv.freg[7]), node->core.riscv.freg[7]
                 );
 
 /*
@@ -2514,14 +2515,14 @@ void riscv_print_context(node_t *node)
                 "f4=%16lx (%g) f5=%16lx (%g)\n"
                 "f6=%16lx (%g) f7=%16lx (%g)\n", 
                 node->core.riscv.fcsr,
-                *(uint64_t *)(&node->core.riscv.freg[0]), *(float *)(&node->core.riscv.freg[0]),
-                *(uint64_t *)(&node->core.riscv.freg[1]), *(float *)(&node->core.riscv.freg[1]),
-                *(uint64_t *)(&node->core.riscv.freg[2]), *(float *)(&node->core.riscv.freg[2]),
-                *(uint64_t *)(&node->core.riscv.freg[3]), *(float *)(&node->core.riscv.freg[3]),
-                *(uint64_t *)(&node->core.riscv.freg[4]), *(float *)(&node->core.riscv.freg[4]),
-                *(uint64_t *)(&node->core.riscv.freg[5]), *(float *)(&node->core.riscv.freg[5]),
-                *(uint64_t *)(&node->core.riscv.freg[6]), *(float *)(&node->core.riscv.freg[6]),
-                *(uint64_t *)(&node->core.riscv.freg[7]), *(float *)(&node->core.riscv.freg[7])
+                double_raw(node->core.riscv.freg[0]), *(float *)(&node->core.riscv.freg[0]),
+                double_raw(node->core.riscv.freg[1]), *(float *)(&node->core.riscv.freg[1]),
+                double_raw(node->core.riscv.freg[2]), *(float *)(&node->core.riscv.freg[2]),
+                double_raw(node->core.riscv.freg[3]), *(float *)(&node->core.riscv.freg[3]),
+                double_raw(node->core.riscv.freg[4]), *(float *)(&node->core.riscv.freg[4]),
+                double_raw(node->core.riscv.freg[5]), *(float *)(&node->core.riscv.freg[5]),
+                double_raw(node->core.riscv.freg[6]), *(float *)(&node->core.riscv.freg[6]),
+                double_raw(node->core.riscv.freg[7]), *(float *)(&node->core.riscv.freg[7])
                 );
 */
 }
