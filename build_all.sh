@@ -5,7 +5,7 @@
 # (for ubuntu, modify for other distributions or package managers)
 
 #   ghdl
-sudo apt-get install gnat libgnat-6
+sudo apt-get install gnat libgnat-6 llvm clang
 #   arm
 sudo apt-get install gcc-arm-none-eabi
 #   riscv

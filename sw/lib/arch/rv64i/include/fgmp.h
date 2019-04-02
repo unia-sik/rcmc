@@ -23,6 +23,7 @@
 #define RISCV_CSR_MAXCID   0xC70
 #define RISCV_CSR_CID      0xC71
 #define RISCV_CSR_NOCDIM   0xC72
+#define RISCV_CSR_XYZ      0xC75
 
 typedef int64_t cid_t;
 typedef uint64_t coordinates_t;
@@ -42,12 +43,12 @@ static inline cid_t fgmp_get_max_cid()
     return riscv_read_csr(RISCV_CSR_MAXCID);
 }
 
-
-// Individual number of the current core
-static inline cid_t fgmp_get_cid()
+// Coordinates of the current core
+static inline coordinates_t fgmp_get_xyz()
 {
-    return riscv_read_csr(RISCV_CSR_CID);
+    return riscv_read_csr(RISCV_CSR_XYZ);
 }
+
 
 
 // Get the physical topology
@@ -56,6 +57,48 @@ static inline coordinates_t fgmp_get_nocdim()
 {
     return riscv_read_csr(RISCV_CSR_NOCDIM);
 }
+
+// ---------------------------------------------------------------------
+// architecture independent
+// ---------------------------------------------------------------------
+
+
+static inline cid_t fgmp_cid_from_xyz(uint_fast16_t u, uint_fast16_t z, 
+    uint_fast16_t y, uint_fast16_t x)
+{
+    coordinates_t max = fgmp_get_nocdim();
+    uint_fast16_t zm = (max >> 32) & 0xffff;
+    uint_fast16_t ym = (max >> 16) & 0xffff;
+    uint_fast16_t xm = max & 0xffff;
+    return (((u*zm)+z)*ym+y)*xm+x;
+}
+
+
+static inline cid_t fgmp_cid_from_coordinates(coordinates_t c)
+{
+    return fgmp_cid_from_xyz((c>>48)&0xffff, (c>>32)&0xffff, (c>>16)&0xffff, c&0xffff);
+}
+
+
+static inline coordinates_t fgmp_coordinates_from_cid(cid_t r)
+{
+    coordinates_t max = fgmp_get_nocdim();
+    uint_fast16_t zm = (max >> 32) & 0xffff;
+    uint_fast16_t ym = (max >> 16) & 0xffff;
+    uint_fast16_t xm = max & 0xffff;
+    coordinates_t x = r % xm;
+    r = r / xm;
+    coordinates_t y = r % ym;
+    r = r / ym;
+    coordinates_t z = r % zm;
+    r = r / zm;
+    return ((coordinates_t)(r/zm)<<48) | (z<<32) | (y<<16) | x;
+}
+
+
+
+
+
 
 
 
@@ -68,6 +111,15 @@ static inline coordinates_t fgmp_get_nocdim()
 // ---------------------------------------------------------------------
 
 #ifdef NEW_PIMP
+
+// Individual number of the current core
+static inline cid_t fgmp_get_cid()
+{
+    return fgmp_cid_from_coordinates(fgmp_get_xyz());
+}
+
+
+
 
 static inline void fgmp_recv_wait()
 {
@@ -245,6 +297,15 @@ static inline long fgmp_probe(cid_t source)
 // ---------------------------------------------------------------------
 
 
+
+// Individual number of the current core
+static inline cid_t fgmp_get_cid()
+{
+    return riscv_read_csr(RISCV_CSR_CID);
+}
+
+
+
 // Is send buffer full?
 static inline long fgmp_cong()
 {
@@ -331,41 +392,5 @@ static inline long fgmp_probe(cid_t source)
 
 
 
-// ---------------------------------------------------------------------
-// architecture independent
-// ---------------------------------------------------------------------
-
-
-static inline cid_t fgmp_cid_from_xyz(uint_fast16_t u, uint_fast16_t z, 
-    uint_fast16_t y, uint_fast16_t x)
-{
-    coordinates_t max = fgmp_get_nocdim();
-    uint_fast16_t zm = (max >> 32) & 0xffff;
-    uint_fast16_t ym = (max >> 16) & 0xffff;
-    uint_fast16_t xm = max & 0xffff;
-    return (((u*zm)+z)*ym+y)*xm+x;
-}
-
-
-static inline cid_t fgmp_cid_from_coordinates(coordinates_t c)
-{
-    return fgmp_cid_from_xyz((c>>48)&0xffff, (c>>32)&0xffff, (c>>16)&0xffff, c&0xffff);
-}
-
-
-static inline coordinates_t fgmp_coordinates_from_cid(cid_t r)
-{
-    coordinates_t max = fgmp_get_nocdim();
-    uint_fast16_t zm = (max >> 32) & 0xffff;
-    uint_fast16_t ym = (max >> 16) & 0xffff;
-    uint_fast16_t xm = max & 0xffff;
-    coordinates_t x = r % xm;
-    r = r / xm;
-    coordinates_t y = r % ym;
-    r = r / ym;
-    coordinates_t z = r % zm;
-    r = r / zm;
-    return ((coordinates_t)(r/zm)<<48) | (z<<32) | (y<<16) | x;
-}
 
 #endif
