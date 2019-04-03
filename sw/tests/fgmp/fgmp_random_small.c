@@ -27,7 +27,7 @@ static inline void test_result(char pass)
 int main(int argc, char *argv[])
 {
     int i;
-    cid_t cid = fgmp_get_cid();
+    cid_t cid = pimp2_get_cid();
     cid_t max_cid = fgmp_get_max_cid();
 
     bool finished[max_cid];
@@ -52,9 +52,9 @@ int main(int argc, char *argv[])
 
     do {
         // receive
-        cid_t recv_cid = fgmp_any();
+        cid_t recv_cid = pimp2_any();
         while (recv_cid>=0) {
-            flit_t flit = fgmp_recv_flit(recv_cid);
+            flit_t flit = pimp2_recv_flit(recv_cid);
             cid_t cid_in_flit = flit >> 12;
             unsigned msgtype = (flit >> 10) & 1;
             unsigned no = flit & 0x3ff;
@@ -73,17 +73,17 @@ int main(int argc, char *argv[])
                 finished[recv_cid] = true; // tail flit
                 recv_node_remain--;
             }
-            recv_cid = fgmp_any();
+            recv_cid = pimp2_any();
         }
 
         // send
         if (!fgmp_cong() && send_node_remain!=0) {
             if (send_msg_remain>1) {
-                fgmp_send_flit(send_cid, (cid<<12) | send_no);
+                pimp2_send_flit(send_cid, (cid<<12) | send_no);
                 send_msg_remain--;
                 send_no++;
             } else {
-                fgmp_send_flit(send_cid, (cid<<12) | 0x400 | send_no);
+                pimp2_send_flit(send_cid, (cid<<12) | 0x400 | send_no);
                 send_node_remain--;
                 if (send_node_remain!=0) {
                     // next node

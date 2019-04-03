@@ -1,6 +1,6 @@
 #include "mpi_internal.h"
 
-#ifdef NEW_PIMP
+#ifndef OLD_PIMP2
 // for fgmp.h
 // need not be initialised, because it is cleared by the CRT anyway
 flit_t fgmp_first_flit[FGMP_MAX_CID];

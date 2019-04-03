@@ -5,19 +5,19 @@
 int main(int argc, char *argv[])
 {
     int i;
-    int cid = fgmp_get_cid();
+    int cid = pimp2_get_cid();
     int max_cid = fgmp_get_max_cid();
  
     if(cid == 0) {
         for(i=1; i<max_cid; i++) {
-            fgmp_send_flit(i, i);
+            pimp2_send_flit(i, i);
         }
         for(i=1; i<max_cid; i++) {
             int core;
             do {
-                core = fgmp_any();
+                core = pimp2_any();
             } while (core<0);
-            flit_t f = fgmp_recv_flit(core);
+            flit_t f = pimp2_recv_flit(core);
             if (f != 10*core) {
                 putchar('F');
                 putchar('\n');;
@@ -25,8 +25,8 @@ int main(int argc, char *argv[])
             }
         }
    } else {
-        flit_t f = fgmp_recv_flit(0);
-        fgmp_send_flit(0, 10*f);
+        flit_t f = pimp2_recv_flit(0);
+        pimp2_send_flit(0, 10*f);
    }
    putchar('k');
    putchar('\n');

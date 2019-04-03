@@ -9,7 +9,8 @@
 MEMORY_SIZE=131072
 # TODO: ghdl crashes with larger memory
 
-ROUTER="UBGG00"
+#ROUTER="PUBGG00"
+ROUTER=pnoo
 
 CORNERBUF=8
 # size of the corner buffer
@@ -68,7 +69,8 @@ TIME_START=$(date +%s)
 
 # MacSim
 printf "MacSim simulation"
-${MACSIM} -A riscv -N${WIDTH}x${WIDTH} -J${CORNERBUF} -RP${ROUTER} -a ${ELF} -y macsim.regdump -q 1> macsim.log
+#${MACSIM} -A riscv -N${WIDTH}x${WIDTH} -J${CORNERBUF} -R${ROUTER} -a ${ELF} -y macsim.regdump -q 1> macsim.log
+${MACSIM} -A riscv -N${WIDTH}x${WIDTH} -R${ROUTER} -a ${ELF} -y macsim.regdump -q 1> macsim.log
 MACSIM_CYCLES=$(grep "Execution Time" macsim.log | awk '{ print $3 }')
 TIME_MACSIM=$(date +%s)
 echo "${COL_MSG} ($((TIME_MACSIM-TIME_START)) seconds)${COL_NONE} simulated time: ${COL_MSG}${MACSIM_CYCLES} cycles${COL_NONE}"
@@ -96,7 +98,7 @@ echo "$(( MACSIM_CYCLES / (TIME_SIM-TIME_ANALYSIS) )) cycles/second)${COL_NONE}"
 
 printf "Converting VCD to regdump"
 #./ghdl_convert.sh ${WORKDIR}/ghdl.vcd > ${WORKDIR}/ghdl.regdump
-awk -v drift=${GHDL_CYCLE_DRIFT} -v coreid=${GHDL_COREID} -f vcd2regdump.awk ${WORKDIR}/ghdl.vcd > ${WORKDIR}/ghdl.regdump
+awk -v drift=${GHDL_CYCLE_DRIFT} -v coreid=${GHDL_COREID} -v width=$2 -f vcd2regdump.awk ${WORKDIR}/ghdl.vcd > ${WORKDIR}/ghdl.regdump
 TIME_CONV=$(date +%s)
 echo "${COL_MSG} ($((TIME_CONV-TIME_SIM)) seconds)${COL_NONE}"
 

@@ -1,16 +1,26 @@
 #!/usr/bin/awk -f
+# Convert the VCD output of GHDL to the MacSim regdump format
+#
+# Usage: awk -v drift=3 -v coreid=generate -v width=4 -f vcdregdump.awk 
+#
+#   drift=  cycle difference between GHDL and MacSim simulation
+#   coreid= how to determine the number of the cores
+#   width=  width of the quadratic NoC
+#
+#   core1, core2:   awk -v drift=8 -v coreid=nocunit
+#   pnoo:           awk -v drift=3 -v coreid=generate
 
 BEGIN {
     if (coreid != "generate" && coreid != "nocunit") {
-        printf "Unknown method to determine core ID";
-        exit 1;
+        printf "Unknown method to determine core ID" > /dev/stderr
+        exit 1
     }
-    width = 4 
-        # Noc width
+    if (width<1) {
+        printf "NoC width not given" > /dev/stderr
+        exit 1
+    }
+
     cycle = - drift
-        # from comand line "awk -v drift=3 -f vcdregdump.awk"
-        # core1, core2: -8
-        # pnoo: -3
     clock = "UNDEF"
     depth = 0
     core = 0            # on a single core there is no nocunit => core=0

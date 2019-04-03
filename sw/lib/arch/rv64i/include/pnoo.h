@@ -6,29 +6,9 @@
 
 #pragma once
 #include <stdint.h>
+#include "fgmp.h"
 
-#define USE_INLINE
-
-#ifndef USE_INLINE
-    void pnoo_snd(uint64_t dest, uint64_t data);
-    void pnoo_srdy(uint64_t dest);
-    uint64_t pnoo_rcvn();
-    uint64_t pnoo_rcvp();
-    void pnoo_bsf();
-    void pnoo_bsnf();
-    void pnoo_bre();
-    void pnoo_brne();
-    void pnoo_bnr(uint64_t dest);
-
-    int pnoo_flit_available();
-    int pnoo_send_buffer_free();
-    int pnoo_is_ready(uint64_t dest);
-    
-    int pnoo_core_id();
-    int pnoo_noc_size();
-    int pnoo_noc_dimension();
-#else
-    inline void pnoo_ibrr(uint64_t start, uint64_t end) {
+    static inline void pnoo_ibrr(uint64_t start, uint64_t end) {
         asm volatile (
             "mv a0, %0;"
             "mv a1, %1;" 
@@ -39,29 +19,31 @@
         );
     }
     
-    inline void pnoo_bbrr() {
+    static inline void pnoo_bbrr() {
         asm volatile (
             ".word 0x0000607b\n\t"
         );
     }
     
-    inline void pnoo_snd(uint64_t dest, uint64_t data) {
+    static inline void pnoo_snd(uint64_t dest, uint64_t payload) {
         asm volatile (
-            "snd %0, %1" 
-            : 
-            : "r" (dest), "r" (data)             
+            ".insn r 0x5b, 0, 0, x0, %0, %1\n\t"  // snd dest, payload
+            : : "r" (dest), "r" (payload)   
         );
     }
     
-    inline void pnoo_srdy(uint64_t dest) {
+    static inline void pnoo_srdy(uint64_t dest) {
         asm volatile (
-            "srdy %0" 
-            : 
-            : "r" (dest)      
+            ".insn r 0x5b, 1, 0, x0, %0, x0\n\t" // srdy dest
+            : : "r" (dest)
         );        
     }
-    
-    inline uint64_t pnoo_rcvn() {
+
+
+#define pnoo_rcvn fgmp_recv_node    
+#define pnoo_rcvp fgmp_recv_payload
+/*
+    static inline uint64_t pnoo_rcvn() {
         uint64_t result;
         asm volatile (
             "rcvn %0" 
@@ -72,7 +54,7 @@
         return result;
     }
     
-    inline uint64_t pnoo_rcvp() {        
+    static inline uint64_t pnoo_rcvp() {        
         uint64_t result;
         asm volatile (
             "rcvp %0" 
@@ -82,36 +64,36 @@
         
         return result; 
     }
+*/
     
-    inline void pnoo_bsf() {
+    static inline void pnoo_bsf() {
         asm volatile (
-            "1: bsf 1b\n\t"
+            "1: .insn sb 0x7b, 0, x0, x0, 1b\n\t" // bsf $
         );
     }
     
-    inline void pnoo_bsnf() {
+    static inline void pnoo_bsnf() {
         asm volatile (
-            "1: bsnf 1b\n\t"
+            "1: .insn sb 0x7b, 1, x0, x0, 1b\n\t" // bsnf $
         );        
     }
     
-    inline void pnoo_bre() {
+    static inline void pnoo_bre() {
         asm volatile (
-            "1: bre 1b\n\t"
+            "1: .insn sb 0x7b, 2, x0, x0, 1b\n\t" // bre $
         );        
     }
     
-    inline void pnoo_brne() {        
+    static inline void pnoo_brne() {
         asm volatile (
-            "1: brne 1b\n\t"
+            "1: .insn sb 0x7b, 3, x0, x0, 1b\n\t" // brne $
         );
     }
     
-    inline void pnoo_bnr(uint64_t dest) {       
+    static inline void pnoo_bnr(uint64_t dest) {       
         asm volatile (
-            "1: bnr %0, 1b" 
-            : 
-            : "r" (dest)      
+            "1: .insn sb 0x7b, 5, %0, x0, 1b\n\t" // bnr dest
+            : : "r" (dest)
         );  
     }
 
@@ -130,21 +112,19 @@
         return result;
     }*/
     
-    inline int pnoo_send_buffer_free() {
+    static inline int pnoo_send_buffer_free() {
         int result = 0;
         asm volatile (
-            "bsf 1f;" 
-            "add %0, %0, 1;"
-            "1:"
-            : "=r" (result)   
-            :    
-        );             
-        
+            ".insn sb 0x7b, 0, x0, x0, 1f\n\t" // bsf 1f
+            "add %0, %0, 1\n\t"
+            "1:\n\t"
+            : "=r" (result)
+        );
         return result;     
     }
     
     int pnoo_is_ready(uint64_t dest);
-//     inline int pnoo_is_ready(uint64_t dest) {       
+//     static inline int pnoo_is_ready(uint64_t dest) {       
 //         int result = 0;
 //         asm volatile (
 //             "bnr %1 1f;" 
@@ -155,7 +135,7 @@
 //         );  
 //     }
     
-    inline int pnoo_core_id() {
+    static inline int pnoo_core_id() {
         int result;
         asm volatile (
             "csrr %0, 0xc75;"
@@ -166,7 +146,7 @@
         return result;
     }
     
-    inline int pnoo_noc_size() {
+    static inline int pnoo_noc_size() {
         int result;
         asm volatile (
             "csrr %0, 0xc70;"
@@ -177,7 +157,7 @@
         return result;        
     }
     
-    inline int pnoo_noc_dimension() {
+    static inline int pnoo_noc_dimension() {
         int result;
         asm volatile (
             "csrr %0, 0xc72;"
@@ -187,7 +167,6 @@
         
         return result & 0xFFFFFFFF;   
     }
-#endif
 
 
 
@@ -211,7 +190,7 @@ typedef struct pnoo_info_s {
     int root;
 } pnoo_info_t;
     
-inline pnoo_info_t pnoo_info() {
+static inline pnoo_info_t pnoo_info() {
     pnoo_info_t result;
     result.address = pnoo_core_id();
     result.size = pnoo_noc_size();
@@ -224,11 +203,11 @@ inline pnoo_info_t pnoo_info() {
     return result;
 }
 
-inline uint32_t pnoo_addr_gen(const uint32_t x, const uint32_t y) {
+static inline uint32_t pnoo_addr_gen(const uint32_t x, const uint32_t y) {
     return (y << 16) | x;
 }
 
-inline pnoo_info_t pnoo_info_virtual(const uint32_t rootAddr, const uint32_t width, const uint32_t height) {
+static inline pnoo_info_t pnoo_info_virtual(const uint32_t rootAddr, const uint32_t width, const uint32_t height) {
     pnoo_info_t result;
     result.address = pnoo_core_id() - rootAddr;
     result.size = width * height;
@@ -241,24 +220,24 @@ inline pnoo_info_t pnoo_info_virtual(const uint32_t rootAddr, const uint32_t wid
     return result;
 }
 
-inline uint32_t pnoo_addr_x(const uint64_t id) {
+static inline uint32_t pnoo_addr_x(const uint64_t id) {
     return id & 0xFFFF;
 }
 
-inline uint32_t pnoo_addr_y(const uint64_t id) {
+static inline uint32_t pnoo_addr_y(const uint64_t id) {
     return id >> 16;
 }
 
-inline uint32_t pnoo_addr_to_rank(const uint32_t addr, const pnoo_info_t* info) {
+static inline uint32_t pnoo_addr_to_rank(const uint32_t addr, const pnoo_info_t* info) {
     return pnoo_addr_y(addr) * info->width + pnoo_addr_x(addr);
 }
 
-inline uint32_t pnoo_addr_from_rank(const uint32_t rank, const pnoo_info_t* info) {
+static inline uint32_t pnoo_addr_from_rank(const uint32_t rank, const pnoo_info_t* info) {
     return ((rank / info->width) << 16) | (rank % info->width);
 }
 
 
-inline int pnoo_addr_next_by_addr(const int addr, const pnoo_info_t* info) {
+static inline int pnoo_addr_next_by_addr(const int addr, const pnoo_info_t* info) {
     int x = addr & 0xFFFF;
     int y = addr >> 16;
     x++;
@@ -271,11 +250,11 @@ inline int pnoo_addr_next_by_addr(const int addr, const pnoo_info_t* info) {
     return (y << 16) | x;
 }
 
-inline int pnoo_addr_next(const pnoo_info_t* info) {
+static inline int pnoo_addr_next(const pnoo_info_t* info) {
     return pnoo_addr_next_by_addr(info->address, info);
 }
 
-inline int pnoo_addr_prev_by_addr(const int addr, const pnoo_info_t* info) {
+static inline int pnoo_addr_prev_by_addr(const int addr, const pnoo_info_t* info) {
     int x = addr & 0xFFFF;
     int y = addr >> 16;
     x--;
@@ -288,15 +267,15 @@ inline int pnoo_addr_prev_by_addr(const int addr, const pnoo_info_t* info) {
     return (y << 16) | x;
 }
 
-inline int pnoo_addr_prev(const pnoo_info_t* info) {
+static inline int pnoo_addr_prev(const pnoo_info_t* info) {
     return pnoo_addr_prev_by_addr(info->address, info);
 }
 
-inline int pnoo_addr_end(const pnoo_info_t* info) {
+static inline int pnoo_addr_end(const pnoo_info_t* info) {
     return info->dimension & 0xFFFF0000;
 }
 
-inline int pnoo_addr_last(const pnoo_info_t* info) {
+static inline int pnoo_addr_last(const pnoo_info_t* info) {
     return info->dimension - 0x10001;
 }
 

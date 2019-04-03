@@ -7,7 +7,7 @@
 
 int main(int argc, char *argv[]) {
 
-  cid_t cid = fgmp_get_cid();
+  cid_t cid = pimp2_get_cid();
   cid_t target = (cid + 1) % 16;
   int cnt = 0;
 

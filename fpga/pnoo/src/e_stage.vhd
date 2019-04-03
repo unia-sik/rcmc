@@ -400,15 +400,16 @@ begin
         end if;
         
         --check if bnr jump musst taken
-        if  d.d.fgmop = '1' and d.d.alufunc1 = FUNC_FGMP_BNR and d.d.br ='1' then
+        if  d.d.fgmop = '1' and d.d.br ='1' and
+                (d.d.alufunc1 = FUNC_FGMP_BR or d.d.alufunc1 = FUNC_FGMP_BNR) then
             --v.jump := RDY_ARRIVED_BUF(to_integer(unsigned(d.d.rs1)));
             
             if RDY_ARRIVED_BUF_VAR(to_integer(unsigned(d.d.rs1(31 downto 16))))(to_integer(unsigned(d.d.rs1(15 downto 0)))) = '1' then 
-                v.jump := '0';
+                v.jump := not d.d.alufunc1(0); -- BR:1 BNR:0
                 RDY_ARRIVED_BUF_VAR(to_integer(unsigned(d.d.rs1(31 downto 16))))(to_integer(unsigned(d.d.rs1(15 downto 0)))) := '0';
                 --v.address := std_logic_vector(unsigned(d.d.pc)-4); 
             else
-                v.jump := '1';
+                v.jump := d.d.alufunc1(0); -- BR:0 BNR:1
             end if;
         end if;        
         

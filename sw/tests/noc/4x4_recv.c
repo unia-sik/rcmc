@@ -7,7 +7,7 @@
 
 int main(int argc, char *argv[]) {
 
-  cid_t cid = fgmp_get_cid();
+  cid_t cid = pimp2_get_cid();
 
   if (cid == 0) {
     pimp2_send_flit(1, 456);

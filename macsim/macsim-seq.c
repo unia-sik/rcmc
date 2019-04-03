@@ -223,10 +223,9 @@ void simulation()
     }
 
     bool any_ready = 0;
+    cycle_t simulated_cycles = 0;
     do {
         simulation_step();
-
-
 
         // check for breakpoints
         any_ready = 0;
@@ -235,6 +234,12 @@ void simulation()
                 if (nodes[r]->pc == nodes[r]->bp_addr) return;
                 any_ready = 1;
             }
+        }
+
+        simulated_cycles++;
+        if (simulated_cycles>100000000) {
+            user_printf("Simulated 100 millon cycles. Infinite loop?\n");
+            return;
         }
     } while (any_ready);
 }

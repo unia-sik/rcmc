@@ -1773,22 +1773,7 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
             }
             break;
 
-        // RC/MC
-        case 0x6b:
-        {
-            switch (iw & 0x7000) {
-                case 0x1000: // srdy s
-                {
-                    if (!node->noc_send_ready(node, REG_S)) {
-                        fatal("RISC-V exception: send buffer full");
-                    }
-                    
-                    return 1;
-                }                
-            }
-        }
-
-        // PIMP
+        // PIMP-3
         case 0x5b:
         {
             switch (iw & 0x7000) {
@@ -1798,6 +1783,14 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
                         fatal("RISC-V exception: send buffer full");
                     }
                     return 1;
+                case 0x1000: // srdy s
+                {
+                    if (!node->noc_send_ready(node, REG_S)) {
+                        fatal("RISC-V exception: send buffer full");
+                    }
+                    
+                    return 1;
+                }
                 case 0x2000: // rcvn d
                 {
                     rank_t r = node->noc_probe_any(node); 
@@ -1826,7 +1819,7 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
             }
         }
 
-        // PIMP branches
+        // PIMP-3 branches
         case 0x7b:
         {            
             addr_t disp = IMM_B;

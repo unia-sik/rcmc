@@ -157,17 +157,17 @@ void merge_up(unsigned long ofs, cid_t other)
     uint64_t *ed = &buf[dest+blocksize-1];
 
     // handshake
-    fgmp_send_flit(other, *ps--);
-    *pr++ = fgmp_recv_flit(other);
+    pimp2_send_flit(other, *ps--);
+    *pr++ = pimp2_recv_flit(other);
 
     // merge sort bottom up and receive
     uint64_t a = *pa++;
     uint64_t b = *pb++;
     while (pd < ed) {
         if (!fgmp_cong() && ps>=es) 
-            fgmp_send_flit(other, *ps--);
-        while (fgmp_probe(other) && pr<=er)
-            *pr++ = fgmp_recv_flit(other);
+            pimp2_send_flit(other, *ps--);
+        while (pimp2_probe(other) && pr<=er)
+            *pr++ = pimp2_recv_flit(other);
         if (a <= b) {
             *pd++ = a;
             a = *pa++;
@@ -181,9 +181,9 @@ void merge_up(unsigned long ofs, cid_t other)
     // receive and send remainig data
     while (ps>=es || pr<=er) {
         if (!fgmp_cong() && ps>=es) 
-            fgmp_send_flit(other, *ps--);
-        while (fgmp_probe(other) && pr<=er)
-            *pr++ = fgmp_recv_flit(other);
+            pimp2_send_flit(other, *ps--);
+        while (pimp2_probe(other) && pr<=er)
+            *pr++ = pimp2_recv_flit(other);
     }
 }
 
@@ -202,17 +202,17 @@ void merge_down(unsigned long ofs, cid_t other)
     uint64_t *ed = &buf[dest];
 
     // handshake
-    *pr-- = fgmp_recv_flit(other);
-    fgmp_send_flit(other, *ps++);
+    *pr-- = pimp2_recv_flit(other);
+    pimp2_send_flit(other, *ps++);
 
     // merge sort top down and send
     uint64_t a = *pa--;
     uint64_t b = *pb--;
     while (pd > ed) {
-        while (fgmp_probe(other) && pr>=er)
-            *pr-- = fgmp_recv_flit(other);
+        while (pimp2_probe(other) && pr>=er)
+            *pr-- = pimp2_recv_flit(other);
         if (!fgmp_cong() && ps<=es)
-            fgmp_send_flit(other, *ps++);
+            pimp2_send_flit(other, *ps++);
         if (a >= b) {
             *pd-- = a;
             a = *pa--;
@@ -224,10 +224,10 @@ void merge_down(unsigned long ofs, cid_t other)
     *pd-- = (a>=b) ? a : b;
 
     while (pr>=er || ps<=es) {
-        while (fgmp_probe(other) && pr>=er)
-            *pr-- = fgmp_recv_flit(other);
+        while (pimp2_probe(other) && pr>=er)
+            *pr-- = pimp2_recv_flit(other);
         if (!fgmp_cong() && ps<=es)
-            fgmp_send_flit(other, *ps++);
+            pimp2_send_flit(other, *ps++);
     }
 }
 
@@ -251,10 +251,10 @@ void merge_up(unsigned long ofs, cid_t other)
     unsigned long dest = ofs ^ BLOCK_SIZE;
 
     // handshake and send
-    fgmp_send_flit(other, buf[ofs+blocksize-1]);
-    buf[2*BLOCK_SIZE] = fgmp_recv_flit(other);
+    pimp2_send_flit(other, buf[ofs+blocksize-1]);
+    buf[2*BLOCK_SIZE] = pimp2_recv_flit(other);
     for (k=1; k<blocksize; k++) {
-        fgmp_send_flit(other, buf[ofs+blocksize-1-k]);
+        pimp2_send_flit(other, buf[ofs+blocksize-1-k]);
     }
 
     // merge sort bottom up and receive
@@ -263,7 +263,7 @@ void merge_up(unsigned long ofs, cid_t other)
     uint64_t a = *pa++;
     uint64_t b = *pb++;
     for (k=1; k<blocksize; k++) {
-        buf[2*BLOCK_SIZE+k] = fgmp_recv_flit(other);
+        buf[2*BLOCK_SIZE+k] = pimp2_recv_flit(other);
         if (a <= b) {
             buf[dest+k-1] = a;
             a = *pa++;
@@ -282,10 +282,10 @@ void merge_down(unsigned long ofs, cid_t other)
     unsigned long dest = ofs ^ BLOCK_SIZE;
 
     // handshake and receive
-    buf[2*BLOCK_SIZE+blocksize-1] = fgmp_recv_flit(other);
-    fgmp_send_flit(other, buf[ofs]);
+    buf[2*BLOCK_SIZE+blocksize-1] = pimp2_recv_flit(other);
+    pimp2_send_flit(other, buf[ofs]);
     for (k=1; k<blocksize; k++) {
-        buf[2*BLOCK_SIZE+blocksize-1-k] = fgmp_recv_flit(other);
+        buf[2*BLOCK_SIZE+blocksize-1-k] = pimp2_recv_flit(other);
     }
 
     // merge sort top down and send
@@ -294,7 +294,7 @@ void merge_down(unsigned long ofs, cid_t other)
     uint64_t a = *pa--;
     uint64_t b = *pb--;
     for (k=1; k<blocksize; k++) {
-        fgmp_send_flit(other, buf[ofs+k]);
+        pimp2_send_flit(other, buf[ofs+k]);
         if (a >= b) {
             buf[dest+blocksize-k] = a;
             a = *pa--;
@@ -314,7 +314,7 @@ int main(int argc, char *argv[])
 {
     long i, j, k;
 
-    cid_t my_cid = fgmp_get_cid();
+    cid_t my_cid = pimp2_get_cid();
     cid_t max_cid = fgmp_get_max_cid();
     unsigned long log2p = 0;
     while ((2<<log2p) <= max_cid) log2p++;
@@ -421,11 +421,11 @@ int main(int argc, char *argv[])
 
     // simple barrier
     if (my_cid==0) {
-        fgmp_send_flit(1, 0);
-        fgmp_recv_flit(max_cid-1);
+        pimp2_send_flit(1, 0);
+        pimp2_recv_flit(max_cid-1);
     } else {
-        fgmp_recv_flit(my_cid-1);
-        fgmp_send_flit((my_cid+1) % max_cid, 0);
+        pimp2_recv_flit(my_cid-1);
+        pimp2_send_flit((my_cid+1) % max_cid, 0);
     }
 
     // check local
@@ -441,16 +441,16 @@ int main(int argc, char *argv[])
     }
 
     // sync check
-    lower = (my_cid==0) ? 0 : fgmp_recv_flit(my_cid-1);
+    lower = (my_cid==0) ? 0 : pimp2_recv_flit(my_cid-1);
     if (lower > buf[toggle]) {
         // first element is lower than last element of previous core
         putchar('L');
     }
 
-    fgmp_send_flit((my_cid<max_cid-1) ? my_cid+1 : 0, v);
+    pimp2_send_flit((my_cid<max_cid-1) ? my_cid+1 : 0, v);
 
     if (my_cid==0) {
-        v = fgmp_recv_flit(max_cid-1);
+        v = pimp2_recv_flit(max_cid-1);
         if (v != UINT64_MAX) {
             putchar('k'); // successful
         } else {

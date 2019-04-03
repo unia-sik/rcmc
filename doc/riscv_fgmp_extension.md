@@ -13,6 +13,7 @@ Instruction encoding
 ....... .....   rs1     001     00000   1011011         SRDY rs1
 ....... .....   .....   010     rd      1011011         RCVN rd
 ....... .....   .....   011     rd      1011011         RCVP rd
+....... rs2     rs1     100     00000   1011011         IBRR rs1, rs2
 
 disp    .....   .....   000     disp    1111011         BSF disp
 disp    .....   .....   001     disp    1111011         BSNF disp
@@ -20,7 +21,7 @@ disp    .....   .....   010     disp    1111011         BRE disp
 disp    .....   .....   011     disp    1111011         BRNE disp
 disp    .....   rs1     100     disp    1111011         BR rs1 disp
 disp    .....   rs1     101     disp    1111011         BNR rs1 disp
-
+disp    .....   .....   110     disp    1111011         BBRR disp
 
 0000000 rs2     rs1     000     00000   1101011         SEND rs1, rs2
 0000000 00000   00000   001     rd      1101011         CONG rd
@@ -76,7 +77,6 @@ Branch to disp, if the receive buffer is empty.
 Branch to disp, if there is a message waiting in the receive buffer.
 
 
-
 PIMP-3 ready flit extension
 ---------------------------
 
@@ -88,6 +88,18 @@ Works in the same way like SEND, but flit is marked and has no data.
 Branch if not ready: Checks if core rs1 is marked as ready.
 When it is ready, go on to next instruction.
 When not, jump to immediate address (0 to jump to itself).
+
+
+PIMP-3 for one-to-one
+---------------------
+
+### IBRR rs1, rs2
+Initialise a barrier in the rectangular area between core rs1 and rs2.
+
+### BBRR disp
+Branch to disp, if at least one node has not reached the barrier yet.
+
+
 
 
 

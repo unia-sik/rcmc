@@ -1,6 +1,7 @@
 # Build executables for the cycle-by-cycle comparison of MacSim and the FPGA.
 # They are special, because the FGPA has many restrictions (RV64I, small memory, slow, ...)
 
+ARCH=rv64i
 include $(dir $(abspath $(lastword $(MAKEFILE_LIST))))../../sw/lib/arch/arch_dependent.mk
 # does set $(RCMC_ROOT)
 
@@ -10,6 +11,7 @@ DIR_RISCVTESTS = $(RCMC_ROOT)sw/tests/riscv-tests/
 DIR_SEQ = $(RCMC_ROOT)sw/tests/seq/
 DIR_MPI = $(RCMC_ROOT)sw/tests/mpi/
 DIR_FGMP = $(RCMC_ROOT)sw/tests/fgmp/
+DIR_PNOO = $(RCMC_ROOT)sw/tests/pnoo/
 DIR_4X4 = $(RCMC_ROOT)sw/tests/noc/
 
 
@@ -31,13 +33,16 @@ E_MPI = $(S_MPI:%.c=$(DIR_BUILD)mpi_%.$(ARCH).elf)
 S_FGMP = $(notdir $(wildcard $(DIR_FGMP)*.c))
 E_FGMP = $(S_FGMP:%.c=$(DIR_BUILD)fgmp_%.$(ARCH).elf)
 
+S_PNOO = $(notdir $(wildcard $(DIR_PNOO)*.c))
+E_PNOO = $(S_PNOO:%.c=$(DIR_BUILD)pnoo_%.$(ARCH).elf)
+
 S_BENCH = bitonic_sort cg ocean
 E_BENCH = $(S_BENCH:%=$(DIR_BUILD)bench_%.$(ARCH).elf)
 
 
 
 
-all: libraries $(DIR_BUILD) $(E_RV64UI) $(E_SEQ) $(E_MPI) $(E_FGMP) $(E_4X4) $(E_BENCH)
+all: libraries $(DIR_BUILD) $(E_RV64UI) $(E_SEQ) $(E_MPI) $(E_FGMP) $(E_4X4) $(E_PNOO) $(E_BENCH)
 
 $(DIR_BUILD)rv64ui_%.$(ARCH).elf: $(DIR_RISCVTESTS)rv64ui/%.S
 	$(CC) -T$(DIR_RISCVTESTS)link.ld -nostdlib -o $@ $^ -I$(DIR_RISCVTESTS) -I$(DIR_RISCVTESTS)macros/scalar
@@ -52,6 +57,9 @@ $(DIR_BUILD)mpi_%.$(ARCH).elf: $(DIR_MPI)%.c
 	$(CC) $(CFLAGS) -o $@ $^  $(LDFLAGS)
 
 $(DIR_BUILD)fgmp_%.$(ARCH).elf: $(DIR_FGMP)%.c
+	$(CC) $(CFLAGS) -o $@ $^  $(LDFLAGS)
+
+$(DIR_BUILD)pnoo_%.$(ARCH).elf: $(DIR_PNOO)%.c
 	$(CC) $(CFLAGS) -o $@ $^  $(LDFLAGS)
 
 # -------

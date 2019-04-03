@@ -224,60 +224,55 @@ begin
 					v.jumpreg  := '1';
 				end if;
 
-			when OP_FGMP =>
-				case v.alufunc1 is
+            when OP_FGMP_PIMP =>
+                case v.alufunc1 is
+                    when FUNC_FGMP_SND =>
+                        reg2used := '1';
+                        v.fgmop  := '1';
+                        v.we     := '0';
                     when FUNC_FGMP_Rdy =>
                         v.fgmop := '1';
-						reg2used := '1';
-					when others => v.exception.cause := EXC_ILLEGAL_INSTRUCTION;
-						v.exception.valid := '1';
-				end case;
-				
-            when OP_FGMP_PIMP =>
-				case v.alufunc1 is
-					when FUNC_FGMP_SND =>
-						reg2used := '1';
-						v.fgmop  := '1';
-						v.we     := '0';		
-
-					when FUNC_FGMP_RCVN =>
-						v.fgmop := '1';
-						
+                        reg2used := '1';
+                    when FUNC_FGMP_RCVN =>
+                        v.fgmop := '1';
                     when FUNC_FGMP_RCVP =>
                         v.fgmop := '1';
-                        
                     when FUNC_FGMP_IBRR =>
-						reg2used := '1';
-						v.fgmop  := '1';
-						v.we     := '0';	
-                        
-					when others => v.exception.cause := EXC_ILLEGAL_INSTRUCTION;
-						v.exception.valid := '1';
-				end case;
-				
-			when OP_FGMP_BRANCH =>
-				case v.alufunc1 is
-					when FUNC_FGMP_BSF | FUNC_FGMP_BSNF | FUNC_FGMP_BRE | FUNC_FGMP_BRNE | FUNC_FGMP_BR | FUNC_FGMP_BNR | FUNC_FGMP_BBRR =>
-						v.br 		:= '1';
-						v.alufunc2	:= '1';
-						v.we		:= '0';
-						reg2used	:= '1';
-						v.fgmop		:= '1';
+                        reg2used := '1';
+                        v.fgmop  := '1';
+                        v.we     := '0';
+                    when others =>
+                        v.exception.cause := EXC_ILLEGAL_INSTRUCTION;
+                        v.exception.valid := '1';
+                end case;
 
-					when others => 
-						v.exception.cause := EXC_ILLEGAL_INSTRUCTION;
-						v.exception.valid := '1';
-				end case;
-				
-			-- fence ops are nops
-			when OP_FENCE =>
- 				v.we    := '0';
-				reg1used := '0';
+            when OP_FGMP_BRANCH =>
+                case v.alufunc1 is
+                    when FUNC_FGMP_BSF | FUNC_FGMP_BSNF | FUNC_FGMP_BRE |
+                         FUNC_FGMP_BRNE | FUNC_FGMP_BR | FUNC_FGMP_BNR |
+                         FUNC_FGMP_BBRR =>
+                        v.br       := '1';
+                        v.alufunc2 := '1';
+                        v.we       := '0';
+                        reg2used   := '1';
+                        v.fgmop    := '1';
 
-			when others => v.exception.cause := EXC_ILLEGAL_INSTRUCTION;
-				v.exception.valid := '1';
+                    when others => 
+                        v.exception.cause := EXC_ILLEGAL_INSTRUCTION;
+                        v.exception.valid := '1';
+                end case;
 
-		end case;
+            -- fence ops are nops
+            when OP_FENCE =>
+                v.we    := '0';
+                reg1used := '0';
+
+            when others =>
+                v.exception.cause := EXC_ILLEGAL_INSTRUCTION;
+                v.exception.valid := '1';
+
+        end case;
+
 
 		-- fetch stage caused exception
 		if d.f.exception.valid = '1' then
