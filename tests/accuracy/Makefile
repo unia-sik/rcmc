@@ -48,19 +48,19 @@ $(DIR_BUILD)rv64ui_%.$(ARCH).elf: $(DIR_RISCVTESTS)rv64ui/%.S
 	$(CC) -T$(DIR_RISCVTESTS)link.ld -nostdlib -o $@ $^ -I$(DIR_RISCVTESTS) -I$(DIR_RISCVTESTS)macros/scalar
 
 $(DIR_BUILD)seq_%.$(ARCH).elf: $(DIR_SEQ)%.c
-	$(CC) $(CFLAGS) -o $@ $^  $(LDFLAGS)
+	$(CC) $(CFLAGS) -O2 -o $@ $^  $(LDFLAGS)
 
 $(DIR_BUILD)4x4_%.$(ARCH).elf: $(DIR_4X4)%.c
-	$(CC) $(CFLAGS) -o $@ $^  $(LDFLAGS)
+	$(CC) $(CFLAGS) -O2 -o $@ $^  $(LDFLAGS)
 
 $(DIR_BUILD)mpi_%.$(ARCH).elf: $(DIR_MPI)%.c
-	$(CC) $(CFLAGS) -o $@ $^  $(LDFLAGS)
+	$(CC) $(CFLAGS) -O2 -o $@ $^  $(LDFLAGS)
 
 $(DIR_BUILD)fgmp_%.$(ARCH).elf: $(DIR_FGMP)%.c
-	$(CC) $(CFLAGS) -o $@ $^  $(LDFLAGS)
+	$(CC) $(CFLAGS) -O2 -o $@ $^  $(LDFLAGS)
 
 $(DIR_BUILD)pnoo_%.$(ARCH).elf: $(DIR_PNOO)%.c
-	$(CC) $(CFLAGS) -o $@ $^  $(LDFLAGS)
+	$(CC) $(CFLAGS) -O2 -o $@ $^  $(LDFLAGS)
 
 # -------
 

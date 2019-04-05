@@ -223,7 +223,6 @@ void simulation()
     }
 
     bool any_ready = 0;
-    cycle_t simulated_cycles = 0;
     do {
         simulation_step();
 
@@ -236,11 +235,6 @@ void simulation()
             }
         }
 
-        simulated_cycles++;
-        if (simulated_cycles>100000000) {
-            user_printf("Simulated 100 millon cycles. Infinite loop?\n");
-            return;
-        }
     } while (any_ready);
 }
 
@@ -1337,6 +1331,7 @@ void process_line(char command, char *argument)
             fatal("Could not open the specified log file");
         }
 
+        cycle_t simulated_cycles = 0;
         do {
             // Simulate one step
             simulation_step();
@@ -1379,6 +1374,14 @@ void process_line(char command, char *argument)
                     }
                 }
             }
+
+            simulated_cycles++;
+            if (simulated_cycles>100000000) {
+                fatal("Simulated 100 millon cycles. Infinite loop?\n");
+                return;
+            }
+
+
             // Check if a core is still running
             all_stopped = true;
             for(r=0; r<conf_max_rank; r++) {
