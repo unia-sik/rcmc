@@ -1,7 +1,12 @@
 #include "mpi_internal.h"
 
 
-int MPI_Send(void *buf, int count, MPI_Datatype type, int dest, int tag, MPI_Comm comm)
+int MPI_Send(const void *buf,
+             int count,
+             MPI_Datatype type,
+             int dest,
+             int tag,
+             MPI_Comm comm)
 {
     int len = count*sizeof_mpi_datatype(type);
     cid_t cid = cid_from_comm(comm, dest);

@@ -1,5 +1,14 @@
 #pragma once
+#define RCMC_ONE_TO_ONE
+#include "pnoo.h"
 #include "mpi.h"
+
+
+static inline uint64_t sizeof_mpi_datatype(MPI_Datatype datatype)
+{
+    return datatype & 0xff;
+}
+
 
 
 void mpi_transfer_send(    

@@ -1,5 +1,4 @@
-#include "mpi.h"
-#include "fgmp_block.h"
+#include "mpi_internal.h"
 
 
 int MPI_Gather_fix_rank(int rank, int root, int size) {
@@ -28,15 +27,15 @@ int MPI_Gather(
     int local_size = sendcount * sizeof_mpi_datatype(sendtype);    
     
     if ((MPI_Gather_fix_rank(comm->rank, root, comm->size) & 1) == 0 && MPI_Gather_fix_rank(comm->rank, root, comm->size) < comm->size - 1) {
-        fgmp_srdy(fgmp_addr_from_rank(MPI_Gather_fix_rank(comm->rank, root, comm->size) + 1, comm) + comm->root);        
+        pnoo_srdy(pnoo_addr_from_rank(MPI_Gather_fix_rank(comm->rank, root, comm->size) + 1, comm) + comm->root);        
     }    
      
     for (int i = 1; i < comm->size; i = i << 1) {
         if ((MPI_Gather_fix_rank(comm->rank, root, comm->size) & i) != 0) {
-            uint64_t dest = fgmp_addr_from_rank(MPI_Gather_fix_rank(comm->rank, root, comm->size) - i, comm) + comm->root;
+            uint64_t dest = pnoo_addr_from_rank(MPI_Gather_fix_rank(comm->rank, root, comm->size) - i, comm) + comm->root;
             
-            fgmp_bsf();
-            fgmp_snd(dest, local_size);
+            pnoo_bsf();
+            pnoo_snd(dest, local_size);
             
             if (i == 1) {
                 mpi_transfer_send(dest, local_size, (void*)sendbuf);
@@ -53,15 +52,15 @@ int MPI_Gather(
             }
             
             if (MPI_Gather_fix_rank(comm->rank, root, comm->size) + i < comm->size) {
-                uint64_t src = fgmp_addr_from_rank(MPI_Gather_fix_rank(comm->rank, root, comm->size) + i, comm) + comm->root;
+                uint64_t src = pnoo_addr_from_rank(MPI_Gather_fix_rank(comm->rank, root, comm->size) + i, comm) + comm->root;
                 
-                fgmp_bre();
-                uint64_t tmp = fgmp_rcvp();
+                pnoo_bre();
+                uint64_t tmp = pnoo_rcvp();
                 mpi_transfer_recv(src, tmp, recvbuf + local_size);
                 local_size += tmp;
                 
                 if (MPI_Gather_fix_rank(comm->rank, root, comm->size) + (i << 1) < comm->size) {
-                    fgmp_srdy(fgmp_addr_from_rank(MPI_Gather_fix_rank(comm->rank, root, comm->size) + (i << 1), comm) + comm->root);                
+                    pnoo_srdy(pnoo_addr_from_rank(MPI_Gather_fix_rank(comm->rank, root, comm->size) + (i << 1), comm) + comm->root);                
                 }
             }
         }

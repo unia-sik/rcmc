@@ -2,9 +2,15 @@
 #include <string.h>
 
 
-int MPI_Gatherv(void* sbuf, int scount, MPI_Datatype stype, void* rbuf,
-    const int rcounts[], const int rdisps[], MPI_Datatype rtype, int root, 
-    MPI_Comm comm)
+int MPI_Gatherv(const void* sbuf,
+                int scount,
+                MPI_Datatype stype,
+                void* rbuf,
+                const int rcounts[],
+                const int rdisps[],
+                MPI_Datatype rtype,
+                int root,
+                MPI_Comm comm)
 {
     unsigned slen = sizeof_mpi_datatype(stype);
     unsigned rlen = sizeof_mpi_datatype(rtype);

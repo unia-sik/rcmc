@@ -10,7 +10,8 @@ include $(RCMC_ROOT)config_default.mk
 
 
 ARCH_PATH=$(RCMC_ROOT)sw/lib/arch/$(ARCH)
-LDFLAGS = -L$(ARCH_PATH)/lib -nostdlib -lmpi -lc -lm -lgcc -lcopper
+LDFLAGS = -L$(ARCH_PATH)/lib -nostdlib -lmpi_be -lc -lm -lgcc -lcopper
+#LDFLAGS = -L$(ARCH_PATH)/lib -nostdlib -lmpi_pnoo -lc -lm -lgcc -lcopper
 
 ifeq ($(ARCH),armv3)
   CC=$(CC_ARM)

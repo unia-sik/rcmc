@@ -1,10 +1,10 @@
-#include "mpi.h"
+#include "mpi_internal.h"
 
 void MPI_Allgather_send_row(void* recvbuf, int sendcount, MPI_Datatype sendtype, MPI_Comm comm)
 {
     int recvData[comm->width];
-    int x = fgmp_addr_x(comm->address);
-    int y = fgmp_addr_y(comm->address);
+    int x = pnoo_addr_x(comm->address);
+    int y = pnoo_addr_y(comm->address);
     int offset = y * comm->width * sendcount * sizeof_mpi_datatype(sendtype);
     
     for (int i = 0; i < comm->width; i++) {
@@ -14,22 +14,22 @@ void MPI_Allgather_send_row(void* recvbuf, int sendcount, MPI_Datatype sendtype,
     recvData[x] = 1;   
     
     for (int i = 1; i < comm->width; i *= 2) {
-        int src = fgmp_addr_gen((x + comm->width - i) % comm->width, y) + comm->root;
-        int dest = fgmp_addr_gen((x + i) % comm->width, y) + comm->root;
-        fgmp_srdy(src);      
+        int src = pnoo_addr_gen((x + comm->width - i) % comm->width, y) + comm->root;
+        int dest = pnoo_addr_gen((x + i) % comm->width, y) + comm->root;
+        pnoo_srdy(src);      
         
         if ((x & i) == 0) {
 
             for (int k = 0; k < comm->width; k++) {
                 if (0 < recvData[k] && recvData[k] <= i) {
-                    fgmp_bsf();
-                    fgmp_snd(dest, k);
+                    pnoo_bsf();
+                    pnoo_snd(dest, k);
                     mpi_transfer_send(dest, sendcount * sizeof_mpi_datatype(sendtype), recvbuf + offset + sizeof_mpi_datatype(sendtype) * sendcount * k);
                 }
             }
             for (int j = 0; j < i; j++) {
-                fgmp_bre();
-                int k = fgmp_rcvp();
+                pnoo_bre();
+                int k = pnoo_rcvp();
                 if (recvData[k] == 0) {
                     recvData[k] = i + 1;
                 }
@@ -37,8 +37,8 @@ void MPI_Allgather_send_row(void* recvbuf, int sendcount, MPI_Datatype sendtype,
             }
         } else {
             for (int j = 0; j < i; j++) {
-                fgmp_bre();
-                int k = fgmp_rcvp();
+                pnoo_bre();
+                int k = pnoo_rcvp();
                 if (recvData[k] == 0) {
                     recvData[k] = i + 1;
                 }
@@ -47,8 +47,8 @@ void MPI_Allgather_send_row(void* recvbuf, int sendcount, MPI_Datatype sendtype,
 
             for (int k = 0; k < comm->width; k++) {
                 if (0 < recvData[k] && recvData[k] <= i) {
-                    fgmp_bsf();
-                    fgmp_snd(dest, k);
+                    pnoo_bsf();
+                    pnoo_snd(dest, k);
                     mpi_transfer_send(dest, sendcount * sizeof_mpi_datatype(sendtype), recvbuf + offset + sizeof_mpi_datatype(sendtype) * sendcount * k);
                 }
             }
@@ -59,8 +59,8 @@ void MPI_Allgather_send_row(void* recvbuf, int sendcount, MPI_Datatype sendtype,
 void MPI_Allgather_send_col(void* recvbuf, int sendcount, MPI_Datatype sendtype, MPI_Comm comm)
 {
     int recvData[comm->height];
-    int x = fgmp_addr_x(comm->address);
-    int y = fgmp_addr_y(comm->address);
+    int x = pnoo_addr_x(comm->address);
+    int y = pnoo_addr_y(comm->address);
     
     for (int i = 0; i < comm->height; i++) {
         recvData[i] = 0;
@@ -70,22 +70,22 @@ void MPI_Allgather_send_col(void* recvbuf, int sendcount, MPI_Datatype sendtype,
     int local_size = sendcount * comm->width;    
     
     for (int i = 1; i < comm->height; i *= 2) {
-        int src = fgmp_addr_gen(x, (y + comm->height - i) % comm->height) + comm->root;
-        int dest = fgmp_addr_gen(x, (y + i) % comm->height) + comm->root;
-        fgmp_srdy(src);      
+        int src = pnoo_addr_gen(x, (y + comm->height - i) % comm->height) + comm->root;
+        int dest = pnoo_addr_gen(x, (y + i) % comm->height) + comm->root;
+        pnoo_srdy(src);      
         
         if ((y & i) == 0) {
             
             for (int k = 0; k < comm->height; k++) {
                 if (0 < recvData[k] && recvData[k] <= i) {
-                    fgmp_bsf();
-                    fgmp_snd(dest, k);
+                    pnoo_bsf();
+                    pnoo_snd(dest, k);
                     mpi_transfer_send(dest, local_size * sizeof_mpi_datatype(sendtype), recvbuf + sizeof_mpi_datatype(sendtype) * local_size * k);
                 }
             }
             for (int j = 0; j < i; j++) {
-                fgmp_bre();
-                int k = fgmp_rcvp();
+                pnoo_bre();
+                int k = pnoo_rcvp();
                 if (recvData[k] == 0) {
                     recvData[k] = i + 1;
                 }
@@ -93,8 +93,8 @@ void MPI_Allgather_send_col(void* recvbuf, int sendcount, MPI_Datatype sendtype,
             }
         } else {
             for (int j = 0; j < i; j++) {
-                fgmp_bre();
-                int k = fgmp_rcvp();
+                pnoo_bre();
+                int k = pnoo_rcvp();
                 if (recvData[k] == 0) {
                     recvData[k] = i + 1;
                 }
@@ -103,8 +103,8 @@ void MPI_Allgather_send_col(void* recvbuf, int sendcount, MPI_Datatype sendtype,
             
             for (int k = 0; k < comm->height; k++) {
                 if (0 < recvData[k] && recvData[k] <= i) {
-                    fgmp_bsf();
-                    fgmp_snd(dest, k);
+                    pnoo_bsf();
+                    pnoo_snd(dest, k);
                     mpi_transfer_send(dest, local_size * sizeof_mpi_datatype(sendtype), recvbuf + sizeof_mpi_datatype(sendtype) * local_size * k);
                 }
             }
@@ -128,9 +128,9 @@ int MPI_Allgather(
     for (int i = 0; i < sendcount * sizeof_mpi_datatype(sendtype); i++) {
         ((char*)recvbuf)[offset + i] = ((char*)sendbuf)[i];
     }
-    
-    
+
     MPI_Allgather_send_row(recvbuf, sendcount, sendtype, comm);
     MPI_Allgather_send_col(recvbuf, sendcount, sendtype, comm);
+    return MPI_SUCCESS;
 }
 

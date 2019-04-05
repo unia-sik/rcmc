@@ -1,4 +1,4 @@
-#include "mpi.h"
+#include "mpi_internal.h"
 
 mpi_communicator_t MPI_New_Comm(
     const uint32_t root,         // The root of the new rectangle (root = lower left corner)
@@ -6,5 +6,5 @@ mpi_communicator_t MPI_New_Comm(
     const uint32_t height,       // height of the rectangle
     MPI_Comm comm                // current communicator
 ) {
-    return fgmp_info_virtual(fgmp_addr_from_rank(root, comm) + comm->root, width, height);
+    return pnoo_info_virtual(pnoo_addr_from_rank(root, comm) + comm->root, width, height);
 }

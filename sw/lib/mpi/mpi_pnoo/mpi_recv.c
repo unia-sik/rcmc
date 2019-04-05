@@ -1,5 +1,4 @@
-#include "mpi.h"
-#include "fgmp_block.h"
+#include "mpi_internal.h"
 
 // Blocking receive for a message
 int MPI_Recv(
@@ -13,10 +12,10 @@ int MPI_Recv(
 )
 {
     int max = count * sizeof_mpi_datatype(datatype);
-    uint32_t address = fgmp_addr_from_rank(source, comm) + comm->root;
-    fgmp_srdy(address);
-    fgmp_bre();
-    int len = fgmp_rcvp();
+    uint32_t address = pnoo_addr_from_rank(source, comm) + comm->root;
+    pnoo_srdy(address);
+    pnoo_bre();
+    int len = pnoo_rcvp();
     
     if (max < len) {
         status->MPI_ERROR = MPI_UNDEFINED;

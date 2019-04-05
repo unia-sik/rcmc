@@ -1,5 +1,4 @@
-#include "mpi.h"
-#include "fgmp_block.h"
+#include "mpi_internal.h"
 
 int MPI_Sendrecv_min(int a, int b) {
     if (a < b) {
@@ -28,19 +27,19 @@ int MPI_Sendrecv(
     
     //send ready
     int recvMax = recvcount * sizeof_mpi_datatype(recvtype);
-    uint32_t recvAddress = fgmp_addr_from_rank(source, comm) + comm->root;
-    fgmp_srdy(recvAddress);
+    uint32_t recvAddress = pnoo_addr_from_rank(source, comm) + comm->root;
+    pnoo_srdy(recvAddress);
         
     //send-logic
     int len = sendcount * sizeof_mpi_datatype(sendtype);
-    uint32_t address = fgmp_addr_from_rank(dest, comm) + comm->root;
+    uint32_t address = pnoo_addr_from_rank(dest, comm) + comm->root;
     
-    fgmp_bsf();
-    fgmp_snd(address, len);
+    pnoo_bsf();
+    pnoo_snd(address, len);
     
     //recv-logic
-    fgmp_bre();
-    int rlen = fgmp_rcvp();
+    pnoo_bre();
+    int rlen = pnoo_rcvp();
         
     if (recvMax < rlen) {
         status->MPI_ERROR = MPI_UNDEFINED;

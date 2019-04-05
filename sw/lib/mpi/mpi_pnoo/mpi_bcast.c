@@ -1,5 +1,4 @@
-#include "mpi.h"
-#include "fgmp_block.h"
+#include "mpi_internal.h"
 
 int MPI_Bcast_fix_rank(int rank, int root, int size) {
     int result = rank - root;
@@ -36,14 +35,15 @@ int MPI_Bcast(
     
     for (int i = (bound << 1) - 1; i != 0; i = i >> 1) {
         if ((rank & i) == 0 && rank + next < comm->size) {
-            int dest = fgmp_addr_from_rank(rank + next, comm) + comm->root;
+            int dest = pnoo_addr_from_rank(rank + next, comm) + comm->root;
             mpi_transfer_send(dest, count * sizeof_mpi_datatype(datatype), buffer);
         } else if (((rank - next) & i) == 0) {
-            int src = fgmp_addr_from_rank(rank - next, comm) + comm->root;
-            fgmp_srdy(src);
+            int src = pnoo_addr_from_rank(rank - next, comm) + comm->root;
+            pnoo_srdy(src);
             mpi_transfer_recv(src, count * sizeof_mpi_datatype(datatype), buffer);
         }
 
         next = next >> 1;
     }
+    return MPI_SUCCESS;
 }

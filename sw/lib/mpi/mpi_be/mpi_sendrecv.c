@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 
-int MPI_Sendrecv(void *sbuf, int scount, MPI_Datatype stype, int dest, int stag,
+int MPI_Sendrecv(const void *sbuf, int scount, MPI_Datatype stype, int dest, int stag,
     void *rbuf, int rcount, MPI_Datatype rtype, int source, int rtag,
     MPI_Comm comm, MPI_Status *status)
 {
@@ -27,7 +27,7 @@ int MPI_Sendrecv(void *sbuf, int scount, MPI_Datatype stype, int dest, int stag,
         && rlen <= rcount*sizeof_mpi_datatype(rtype));
     status->MPI_TAG = rtag;
 
-    flit_t *sptr = sbuf;
+    const flit_t *sptr = sbuf;
     flit_t *rptr = rbuf;
     while (slen>0) {
         // send a flit whenever the send buffer is not full

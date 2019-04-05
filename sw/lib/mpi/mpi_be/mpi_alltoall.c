@@ -120,7 +120,7 @@ static void alltoall(
 }
 
 
-int MPI_Alltoall(void *sbuf, int scount, MPI_Datatype stype,
+int MPI_Alltoall(const void *sbuf, int scount, MPI_Datatype stype,
     void *rbuf, int rcount, MPI_Datatype rtype, MPI_Comm comm)
 {
     size_t len = rcount * sizeof_mpi_datatype(rtype);
@@ -140,8 +140,15 @@ int MPI_Alltoall(void *sbuf, int scount, MPI_Datatype stype,
 }
 
 
-int MPI_Alltoallv(void *sbuf, int *scounts, int *sdisps, MPI_Datatype stype,
-    void *rbuf, int *rcounts, int *rdisps, MPI_Datatype rtype, MPI_Comm comm)
+int MPI_Alltoallv(const void *sbuf,
+                  const int *scounts,
+                  const int *sdisps,
+                  MPI_Datatype stype,
+                  void *rbuf,
+                  const int *rcounts,
+                  const int *rdisps,
+                  MPI_Datatype rtype,
+                  MPI_Comm comm)
 {
     size_t slen = sizeof_mpi_datatype(stype);
     size_t rlen = sizeof_mpi_datatype(rtype);

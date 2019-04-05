@@ -1,5 +1,4 @@
-#include "mpi.h"
-#include "fgmp_block.h"
+#include "mpi_internal.h"
 
 
 // Gathers into specified locations from all processes in a group 
@@ -17,14 +16,14 @@ int MPI_Gatherv(
 {    
     MPI_Barrier(comm);
     if (comm->rank == root) {  
-        for (int i = 0; i < fgmp_addr_end(comm); i = fgmp_addr_next_by_addr(i, comm)) {
+        for (int i = 0; i < pnoo_addr_end(comm); i = pnoo_addr_next_by_addr(i, comm)) {
             if (i != comm->address) {                
-                fgmp_srdy(i + comm->root);
-                mpi_transfer_recv(i + comm->root, recvcounts[fgmp_addr_to_rank(i, comm)] * sizeof_mpi_datatype(recvtype), recvbuf + displs[fgmp_addr_to_rank(i, comm)]);
+                pnoo_srdy(i + comm->root);
+                mpi_transfer_recv(i + comm->root, recvcounts[pnoo_addr_to_rank(i, comm)] * sizeof_mpi_datatype(recvtype), recvbuf + displs[pnoo_addr_to_rank(i, comm)]);
             }
         }
     } else {
-        mpi_transfer_send(fgmp_addr_from_rank(root, comm) + comm->root, sendcount * sizeof_mpi_datatype(sendtype), (void*)sendbuf);
+        mpi_transfer_send(pnoo_addr_from_rank(root, comm) + comm->root, sendcount * sizeof_mpi_datatype(sendtype), (void*)sendbuf);
     }
     
     return MPI_SUCCESS;

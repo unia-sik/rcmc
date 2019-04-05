@@ -1,5 +1,4 @@
-#include "mpi.h"
-#include "fgmp_block.h"
+#include "mpi_internal.h"
 
 
 // Sends and receives using a single buffer
@@ -17,17 +16,17 @@ int MPI_Sendrecv_replace(
 {
     //send ready
     int len = count * sizeof_mpi_datatype(datatype);
-    uint32_t recvAddress = fgmp_addr_from_rank(source, comm) + comm->root;
-    fgmp_srdy(recvAddress);
+    uint32_t recvAddress = pnoo_addr_from_rank(source, comm) + comm->root;
+    pnoo_srdy(recvAddress);
         
     //send-logic
-    uint32_t address = fgmp_addr_from_rank(dest, comm) + comm->root;
-    fgmp_bsf();
-    fgmp_snd(address, len);
+    uint32_t address = pnoo_addr_from_rank(dest, comm) + comm->root;
+    pnoo_bsf();
+    pnoo_snd(address, len);
     
     //recv-logic
-    fgmp_bre();
-    fgmp_rcvp();
+    pnoo_bre();
+    pnoo_rcvp();
     
     mpi_transfer_send_recv(address, recvAddress, len, (void*)buf, buf);    
     

@@ -1,4 +1,4 @@
-#include "mpi.h"
+#include "mpi_internal.h"
 
 
 // Gets the number of "top level" elements

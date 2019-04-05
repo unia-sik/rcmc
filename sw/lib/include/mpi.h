@@ -47,8 +47,19 @@ extern "C" {
 
 
 typedef int MPI_Datatype;
-typedef int MPI_Request;
 typedef int MPI_Op;
+
+#ifdef RCMC_ONE_TO_ONE
+typedef struct {
+    void* buf;                   // initial address of receive buffer
+    int count;                   // maximum number of elements in receive buffer
+    int source;                  // source-rank
+    int tag;                     // tag
+    MPI_Datatype datatype;       // datatype of each receive buffer element
+} MPI_Request;
+#else
+typedef int MPI_Request;
+#endif
 
 typedef struct {
     int MPI_SOURCE;
@@ -63,10 +74,15 @@ typedef struct {
 } mpi_group_t;
 typedef mpi_group_t *MPI_Group;
 
+#ifdef RCMC_ONE_TO_ONE
+typedef pnoo_info_t mpi_communicator_t;
+#else
 typedef struct {
     int         rank;
     mpi_group_t group;
 }  mpi_communicator_t;
+#endif
+
 typedef mpi_communicator_t *MPI_Comm;
 
 extern mpi_communicator_t mpi_comm_world;
@@ -76,15 +92,15 @@ extern mpi_communicator_t mpi_comm_world;
 
 
 int MPI_Init(int *argc, char ***argv);
-int MPI_Get_count(MPI_Status *status, MPI_Datatype datatype, int *count);
-int MPI_Send(void *buf, int count, MPI_Datatype datatype, int dest, int tag, 
+int MPI_Get_count(const MPI_Status *status, MPI_Datatype datatype, int *count);
+int MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest, int tag, 
         MPI_Comm comm);
 int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int src, int tag,
         MPI_Comm comm, MPI_Status *status);
 int MPI_Irecv(void *buf, int count, MPI_Datatype datatype, int src, int tag,
         MPI_Comm comm, MPI_Request *request);
 int MPI_Wait(MPI_Request *request, MPI_Status *status);
-int MPI_Sendrecv(void *sbuf, int scount, MPI_Datatype stype, int dest, int stag,
+int MPI_Sendrecv(const void *sbuf, int scount, MPI_Datatype stype, int dest, int stag,
     void *rbuf, int rcount, MPI_Datatype rtype, int source, int rtag,
     MPI_Comm comm, MPI_Status *status);
 int MPI_Sendrecv_replace(void *buf, int count, MPI_Datatype datatype, int dest,
@@ -93,13 +109,13 @@ int MPI_Sendrecv_replace(void *buf, int count, MPI_Datatype datatype, int dest,
 int MPI_Barrier(MPI_Comm comm);
 int MPI_Bcast(void* buf, int count, MPI_Datatype datatype, int root, 
         MPI_Comm comm);
-int MPI_Gather(void* send_buf, int send_count, MPI_Datatype send_datatype,
+int MPI_Gather(const void* send_buf, int send_count, MPI_Datatype send_datatype,
         void* receive_buf, int receive_count, MPI_Datatype receive_datatype,
         int root, MPI_Comm comm);
-int MPI_Gatherv(void* sbuf, int scount, MPI_Datatype stype, void* rbuf,
+int MPI_Gatherv(const void* sbuf, int scount, MPI_Datatype stype, void* rbuf,
         const int rcounts[], const int rdisps[], MPI_Datatype rtype, int root,
         MPI_Comm comm);
-int MPI_Allgather(void* send_buf, int send_count, MPI_Datatype send_datatype,
+int MPI_Allgather(const void* send_buf, int send_count, MPI_Datatype send_datatype,
         void* receive_buf, int receive_count, MPI_Datatype receive_datatype,
         MPI_Comm comm); // not yet implemented, only to avoid warnings
 int MPI_Scatter(const void* send_buf, int send_count, MPI_Datatype send_datatype,
@@ -108,11 +124,11 @@ int MPI_Scatter(const void* send_buf, int send_count, MPI_Datatype send_datatype
 int MPI_Scatterv(const void *sbuf, const int scounts[], const int sdisps[],
         MPI_Datatype stype, void *rbuf, int rcount, MPI_Datatype rtype, int root,
         MPI_Comm comm) ;
-int MPI_Alltoall(void* send_buf, int send_count, MPI_Datatype send_datatype, 
+int MPI_Alltoall(const void* send_buf, int send_count, MPI_Datatype send_datatype, 
         void *receive_buf, int receive_count, MPI_Datatype receive_datatype,
         MPI_Comm comm);
-int MPI_Alltoallv(void *sbuf, int *scounts, int *sdisps, MPI_Datatype sdtype,
-        void *rbuf, int *rcounts, int *rdisps, MPI_Datatype rdtype, 
+int MPI_Alltoallv(const void *sbuf, const int *scounts, const int *sdisps, MPI_Datatype sdtype,
+        void *rbuf, const int *rcounts, const int *rdisps, MPI_Datatype rdtype, 
         MPI_Comm comm);
 int MPI_Reduce(const void *sbuf, void *rbuf, int count, MPI_Datatype type,
         MPI_Op op, int root, MPI_Comm comm);
@@ -137,6 +153,7 @@ int MPI_Comm_create(MPI_Comm comm, MPI_Group group, MPI_Comm *new);
 int MPI_Comm_free(MPI_Comm *comm);
 
 
+#ifndef RCMC_ONE_TO_ONE
 
 static inline int MPI_Comm_size(MPI_Comm comm, int *size)
 {
@@ -165,6 +182,8 @@ static inline int MPI_Group_size(MPI_Group group, int *size)
     *size = group->size;
     return MPI_SUCCESS;
 }
+
+#endif
 
 
 static inline int MPI_Finalize()

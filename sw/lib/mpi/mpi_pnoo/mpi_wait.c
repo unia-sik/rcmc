@@ -1,5 +1,4 @@
-#include "mpi.h"
-#include "fgmp_block.h"
+#include "mpi_internal.h"
 
 // Waits for an MPI request to complete
 int MPI_Wait(
@@ -8,15 +7,15 @@ int MPI_Wait(
 )
 {
     int max = request->count * sizeof_mpi_datatype(request->datatype);    
-    fgmp_bre();
-    int len = fgmp_rcvp();
+    pnoo_bre();
+    int len = pnoo_rcvp();
     
      if (max < len) {
         status->MPI_ERROR = MPI_UNDEFINED;
         return MPI_UNDEFINED; //NOTE: should be somethong different
     }
     
-    fgmp_block_recv_no_srdy(0, len, request->buf);
+    pnoo_block_recv_no_srdy(0, len, request->buf);
     
     status->MPI_SOURCE = request->source;
     status->MPI_TAG = request->tag;

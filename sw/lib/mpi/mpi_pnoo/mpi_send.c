@@ -1,5 +1,4 @@
-#include "mpi.h"
-#include "fgmp_block.h"
+#include "mpi_internal.h"
 
 // Performs a blocking send
 int MPI_Send(
@@ -12,9 +11,9 @@ int MPI_Send(
 )
 {
     int len = count * sizeof_mpi_datatype(datatype);
-    uint32_t address = fgmp_addr_from_rank(dest, comm) + comm->root;
-    fgmp_bsf();
-    fgmp_snd(address, len);
+    uint32_t address = pnoo_addr_from_rank(dest, comm) + comm->root;
+    pnoo_bsf();
+    pnoo_snd(address, len);
     mpi_transfer_send(address, len, (void*)buf); //NOTE dirty hack to cast from const void* to void*
     
     return MPI_SUCCESS;

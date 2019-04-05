@@ -1,5 +1,4 @@
-#include "mpi.h"
-#include "fgmp_block.h"
+#include "mpi_internal.h"
 
 #define MAX_MIN_SUM_PROD_BIN(type) \
 { \
@@ -76,7 +75,7 @@ int MPI_Reduce(
     char buffer[2 * local_size];
     
     if ((MPI_Reduce_fix_rank(comm->rank, root, comm->size) & 1) == 0 && MPI_Reduce_fix_rank(comm->rank, root, comm->size) < comm->size - 1) {
-        fgmp_srdy(fgmp_addr_from_rank(MPI_Reduce_fix_rank(comm->rank, root, comm->size) + 1, comm) + comm->root);        
+        pnoo_srdy(pnoo_addr_from_rank(MPI_Reduce_fix_rank(comm->rank, root, comm->size) + 1, comm) + comm->root);        
     }  
     
     for (int k = 0; k < local_size; k++) {
@@ -85,14 +84,14 @@ int MPI_Reduce(
                     
     for (int i = 1; i < comm->size; i = i << 1) {
         if ((MPI_Reduce_fix_rank(comm->rank, root, comm->size) & i) != 0) {
-            mpi_transfer_send(fgmp_addr_from_rank(MPI_Reduce_fix_rank(comm->rank, root, comm->size) - i, comm) + comm->root, local_size, (void*)buffer);
+            mpi_transfer_send(pnoo_addr_from_rank(MPI_Reduce_fix_rank(comm->rank, root, comm->size) - i, comm) + comm->root, local_size, (void*)buffer);
             return MPI_SUCCESS;
         } else {
             if (MPI_Reduce_fix_rank(comm->rank, root, comm->size) + i < comm->size) {
-                mpi_transfer_recv(fgmp_addr_from_rank(MPI_Reduce_fix_rank(comm->rank, root, comm->size) + i, comm) + comm->root, local_size, buffer + local_size);                
+                mpi_transfer_recv(pnoo_addr_from_rank(MPI_Reduce_fix_rank(comm->rank, root, comm->size) + i, comm) + comm->root, local_size, buffer + local_size);                
                 
                 if (MPI_Reduce_fix_rank(comm->rank, root, comm->size) + (i << 1) < comm->size) {
-                    fgmp_srdy(fgmp_addr_from_rank(MPI_Reduce_fix_rank(comm->rank, root, comm->size) + (i << 1), comm) + comm->root);                
+                    pnoo_srdy(pnoo_addr_from_rank(MPI_Reduce_fix_rank(comm->rank, root, comm->size) + (i << 1), comm) + comm->root);                
                 }
                 
                 MPI_Reduce_calc_op(buffer, count, datatype, op);  

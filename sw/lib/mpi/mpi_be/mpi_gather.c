@@ -2,7 +2,7 @@
 #include <string.h>
 
 
-int MPI_Gather(void* sbuf, int scount, MPI_Datatype stype, 
+int MPI_Gather(const void* sbuf, int scount, MPI_Datatype stype, 
     void* rbuf, int rcount, MPI_Datatype rtype, int root, MPI_Comm comm)
 {
     unsigned len = rcount * sizeof_mpi_datatype(rtype);

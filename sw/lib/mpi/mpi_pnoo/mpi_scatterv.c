@@ -1,5 +1,4 @@
-#include "mpi.h"
-#include "fgmp_block.h"
+#include "mpi_internal.h"
 
 // Sends data from one process to all other processes in a communicator 
 int MPI_Scatterv(
@@ -16,15 +15,15 @@ int MPI_Scatterv(
 {
     MPI_Barrier(comm);
     if (comm->rank == root) {        
-        for (int i = 0; i < fgmp_addr_end(comm); i = fgmp_addr_next_by_addr(i, comm)) {
+        for (int i = 0; i < pnoo_addr_end(comm); i = pnoo_addr_next_by_addr(i, comm)) {
             if (i != comm->address) {                
-                uint64_t r = fgmp_addr_to_rank(i, comm);
+                uint64_t r = pnoo_addr_to_rank(i, comm);
                 mpi_transfer_send(i + comm->root, sendcounts[r] * sizeof_mpi_datatype(sendtype), (void*)sendbuf + sdispls[r]);
             }
         }
     } else {        
-        fgmp_srdy(fgmp_addr_from_rank(root, comm) + comm->root);
-        mpi_transfer_recv(fgmp_addr_from_rank(root, comm) + comm->root, recvcount * sizeof_mpi_datatype(recvtype), recvbuf);
+        pnoo_srdy(pnoo_addr_from_rank(root, comm) + comm->root);
+        mpi_transfer_recv(pnoo_addr_from_rank(root, comm) + comm->root, recvcount * sizeof_mpi_datatype(recvtype), recvbuf);
     }
     
     return MPI_SUCCESS;

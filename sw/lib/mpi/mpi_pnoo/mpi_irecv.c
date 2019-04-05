@@ -1,4 +1,4 @@
-#include "mpi.h"
+#include "mpi_internal.h"
 
 
 // Begins a nonblocking receive
@@ -17,7 +17,7 @@ int MPI_Irecv(
     request->source = source;
     request->tag = tag;
         
-    fgmp_srdy(fgmp_addr_from_rank(source, comm) + comm->root);
+    pnoo_srdy(pnoo_addr_from_rank(source, comm) + comm->root);
     
     return MPI_SUCCESS;
 }

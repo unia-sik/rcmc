@@ -1,38 +1,37 @@
-#include "mpi.h"
-#include "fgmp_block.h"
+#include "mpi_internal.h"
 
 void MPI_Alltoall_collect_col(const void* sendbuf, void* recvbuf, int sendcount, MPI_Datatype sendtype, MPI_Comm comm) {
-    int x = fgmp_addr_x(comm->address);
-    int y = fgmp_addr_y(comm->address);
+    int x = pnoo_addr_x(comm->address);
+    int y = pnoo_addr_y(comm->address);
 
     for (int i = 1; i < comm->height; i++) {
-        int src = fgmp_addr_gen(x, ((y + comm->height - i) % comm->height)) + comm->root;
-        int dest = fgmp_addr_gen(x, ((y + i) % comm->height)) + comm->root;
+        int src = pnoo_addr_gen(x, ((y + comm->height - i) % comm->height)) + comm->root;
+        int dest = pnoo_addr_gen(x, ((y + i) % comm->height)) + comm->root;
 
-        fgmp_srdy(src);
+        pnoo_srdy(src);
         
 //         if (src == dest) {            
             if (comm->address < dest) {
                 mpi_transfer_send(
                     dest,
                     sendcount * comm->width * sizeof_mpi_datatype(sendtype),
-                    (void*)sendbuf + sizeof_mpi_datatype(sendtype) * sendcount * comm->width * fgmp_addr_y(dest)
+                    (void*)sendbuf + sizeof_mpi_datatype(sendtype) * sendcount * comm->width * pnoo_addr_y(dest)
                 );                
                 mpi_transfer_recv(
                     src,
                     sendcount * comm->width * sizeof_mpi_datatype(sendtype),
-                    recvbuf + sizeof_mpi_datatype(sendtype) * sendcount * comm->width * fgmp_addr_y(src)
+                    recvbuf + sizeof_mpi_datatype(sendtype) * sendcount * comm->width * pnoo_addr_y(src)
                 );
             } else {
                 mpi_transfer_recv(
                     src,
                     sendcount * comm->width * sizeof_mpi_datatype(sendtype),
-                    recvbuf + sizeof_mpi_datatype(sendtype) * sendcount * comm->width * fgmp_addr_y(src)
+                    recvbuf + sizeof_mpi_datatype(sendtype) * sendcount * comm->width * pnoo_addr_y(src)
                 );
                 mpi_transfer_send(
                     dest,
                     sendcount * comm->width * sizeof_mpi_datatype(sendtype),
-                    (void*)sendbuf + sizeof_mpi_datatype(sendtype) * sendcount * comm->width * fgmp_addr_y(dest)
+                    (void*)sendbuf + sizeof_mpi_datatype(sendtype) * sendcount * comm->width * pnoo_addr_y(dest)
                 );
             }
 //         } else {
@@ -41,23 +40,23 @@ void MPI_Alltoall_collect_col(const void* sendbuf, void* recvbuf, int sendcount,
 //                     mpi_transfer_send(
 //                         dest,
 //                         sendcount * comm->width * sizeof_mpi_datatype(sendtype),
-//                         (void*)sendbuf + sizeof_mpi_datatype(sendtype) * sendcount * comm->width * fgmp_addr_y(dest)
+//                         (void*)sendbuf + sizeof_mpi_datatype(sendtype) * sendcount * comm->width * pnoo_addr_y(dest)
 //                     );
 //                     mpi_transfer_recv(
 //                         src,
 //                         sendcount * comm->width * sizeof_mpi_datatype(sendtype),
-//                         recvbuf + sizeof_mpi_datatype(sendtype) * sendcount * comm->width * fgmp_addr_y(src)
+//                         recvbuf + sizeof_mpi_datatype(sendtype) * sendcount * comm->width * pnoo_addr_y(src)
 //                     );                    
 //                 } else {
 //                     mpi_transfer_recv(
 //                         src,
 //                         sendcount * comm->width * sizeof_mpi_datatype(sendtype),
-//                         recvbuf + sizeof_mpi_datatype(sendtype) * sendcount * comm->width * fgmp_addr_y(src)
+//                         recvbuf + sizeof_mpi_datatype(sendtype) * sendcount * comm->width * pnoo_addr_y(src)
 //                     );
 //                     mpi_transfer_send(
 //                         dest,
 //                         sendcount * comm->width * sizeof_mpi_datatype(sendtype),
-//                         (void*)sendbuf + sizeof_mpi_datatype(sendtype) * sendcount * comm->width * fgmp_addr_y(dest)
+//                         (void*)sendbuf + sizeof_mpi_datatype(sendtype) * sendcount * comm->width * pnoo_addr_y(dest)
 //                     );                    
 //                 }
 //             } else {
@@ -65,23 +64,23 @@ void MPI_Alltoall_collect_col(const void* sendbuf, void* recvbuf, int sendcount,
 //                     mpi_transfer_recv(
 //                         src,
 //                         sendcount * comm->width * sizeof_mpi_datatype(sendtype),
-//                         recvbuf + sizeof_mpi_datatype(sendtype) * sendcount * comm->width * fgmp_addr_y(src)
+//                         recvbuf + sizeof_mpi_datatype(sendtype) * sendcount * comm->width * pnoo_addr_y(src)
 //                     );
 //                     mpi_transfer_send(
 //                         dest,
 //                         sendcount * comm->width * sizeof_mpi_datatype(sendtype),
-//                         (void*)sendbuf + sizeof_mpi_datatype(sendtype) * sendcount * comm->width * fgmp_addr_y(dest)
+//                         (void*)sendbuf + sizeof_mpi_datatype(sendtype) * sendcount * comm->width * pnoo_addr_y(dest)
 //                     );                    
 //                 } else {
 //                     mpi_transfer_send(
 //                         dest,
 //                         sendcount * comm->width * sizeof_mpi_datatype(sendtype),
-//                         (void*)sendbuf + sizeof_mpi_datatype(sendtype) * sendcount * comm->width * fgmp_addr_y(dest)
+//                         (void*)sendbuf + sizeof_mpi_datatype(sendtype) * sendcount * comm->width * pnoo_addr_y(dest)
 //                     );
 //                     mpi_transfer_recv(
 //                         src,
 //                         sendcount * comm->width * sizeof_mpi_datatype(sendtype),
-//                         recvbuf + sizeof_mpi_datatype(sendtype) * sendcount * comm->width * fgmp_addr_y(src)
+//                         recvbuf + sizeof_mpi_datatype(sendtype) * sendcount * comm->width * pnoo_addr_y(src)
 //                     );                    
 //                 }
 //             }            
@@ -89,27 +88,27 @@ void MPI_Alltoall_collect_col(const void* sendbuf, void* recvbuf, int sendcount,
         
         
         
-//         if (y < fgmp_addr_y(dest)) {
-//             fgmp_block_send_no_srdy(
+//         if (y < pnoo_addr_y(dest)) {
+//             pnoo_block_send_no_srdy(
 //                 dest,
 //                 sizeof_mpi_datatype(sendtype) * sendcount * comm->width,
-//                 (void*)sendbuf + sizeof_mpi_datatype(sendtype) * sendcount * comm->width * fgmp_addr_y(dest)
+//                 (void*)sendbuf + sizeof_mpi_datatype(sendtype) * sendcount * comm->width * pnoo_addr_y(dest)
 //             );
-//             fgmp_block_recv_no_srdy(
+//             pnoo_block_recv_no_srdy(
 //                 src,
 //                 sizeof_mpi_datatype(sendtype) * sendcount * comm->width,
-//                 recvbuf + sizeof_mpi_datatype(sendtype) * sendcount * comm->width * fgmp_addr_y(src)
+//                 recvbuf + sizeof_mpi_datatype(sendtype) * sendcount * comm->width * pnoo_addr_y(src)
 //             );
 //         } else {
-//             fgmp_block_recv_no_srdy(
+//             pnoo_block_recv_no_srdy(
 //                 src,
 //                 sizeof_mpi_datatype(sendtype) * sendcount * comm->width,
-//                 recvbuf + sizeof_mpi_datatype(sendtype) * sendcount * comm->width * fgmp_addr_y(src)
+//                 recvbuf + sizeof_mpi_datatype(sendtype) * sendcount * comm->width * pnoo_addr_y(src)
 //             );
-//             fgmp_block_send_no_srdy(
+//             pnoo_block_send_no_srdy(
 //                 dest,
 //                 sizeof_mpi_datatype(sendtype) * sendcount * comm->width,
-//                 (void*)sendbuf + sizeof_mpi_datatype(sendtype) * sendcount * comm->width * fgmp_addr_y(dest)
+//                 (void*)sendbuf + sizeof_mpi_datatype(sendtype) * sendcount * comm->width * pnoo_addr_y(dest)
 //             );
 //         }
     }
@@ -117,29 +116,29 @@ void MPI_Alltoall_collect_col(const void* sendbuf, void* recvbuf, int sendcount,
 
 
 void MPI_Alltoall_collect_row(const void* sendbuf, void* recvbuf, int sendcount, MPI_Datatype sendtype, MPI_Comm comm) {
-    int x = fgmp_addr_x(comm->address);
-    int y = fgmp_addr_y(comm->address);
+    int x = pnoo_addr_x(comm->address);
+    int y = pnoo_addr_y(comm->address);
 
     for (int i = 1; i < comm->width; i++) {
-        int src = fgmp_addr_gen(((x + comm->width - i) % comm->width), y) + comm->root;
-        int dest = fgmp_addr_gen(((x + i) % comm->width), y) + comm->root;
+        int src = pnoo_addr_gen(((x + comm->width - i) % comm->width), y) + comm->root;
+        int dest = pnoo_addr_gen(((x + i) % comm->width), y) + comm->root;
 
-        fgmp_srdy(src);
+        pnoo_srdy(src);
 
         for (int j = 0; j < comm->height; j++) {
             mpi_transfer_send_recv(
                 dest,
                 src,
                 sizeof_mpi_datatype(sendtype) * sendcount,
-                recvbuf + sizeof_mpi_datatype(sendtype) * sendcount * (comm->width * j + fgmp_addr_x(dest)),
-                recvbuf+ sizeof_mpi_datatype(sendtype) * sendcount * (comm->width * j + fgmp_addr_x(dest))
+                recvbuf + sizeof_mpi_datatype(sendtype) * sendcount * (comm->width * j + pnoo_addr_x(dest)),
+                recvbuf+ sizeof_mpi_datatype(sendtype) * sendcount * (comm->width * j + pnoo_addr_x(dest))
             );
         }
     }
 }
 
 void MPI_Alltoall_copy_local_data(const void* sendbuf, void* recvbuf, int sendcount, MPI_Datatype sendtype, MPI_Comm comm) {
-    int offset = sizeof_mpi_datatype(sendtype) * sendcount * comm->width * fgmp_addr_y(comm->address);
+    int offset = sizeof_mpi_datatype(sendtype) * sendcount * comm->width * pnoo_addr_y(comm->address);
     int n = sizeof_mpi_datatype(sendtype) * sendcount * comm->width;
 
     for (int i = 0; i < n; i++) {
@@ -166,7 +165,7 @@ void MPI_Alltoall_sort_recv_data_chunk(void* recvbuf, int sendcount, MPI_Datatyp
 }
 
 void MPI_Alltoall_sort_recv_data(void* recvbuf, int sendcount, MPI_Datatype sendtype, MPI_Comm comm) {
-    int zeroPos = (fgmp_addr_x(comm->rank) * 2) % comm->width;
+    int zeroPos = (pnoo_addr_x(comm->rank) * 2) % comm->width;
     for (int i = 0; i < comm->height; i++) {
         MPI_Alltoall_sort_recv_data_chunk(
             recvbuf + sizeof_mpi_datatype(sendtype) * sendcount * comm->width * i,
@@ -204,4 +203,5 @@ int MPI_Alltoall(
     MPI_Alltoall_copy_local_data(sendbuf, recvbuf, sendcount, sendtype, comm);
     MPI_Alltoall_collect_row(sendbuf, recvbuf, sendcount, sendtype, comm);
     MPI_Alltoall_sort_recv_data(recvbuf, sendcount, sendtype, comm);
+    return MPI_SUCCESS;
 }
