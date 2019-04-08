@@ -18,7 +18,7 @@ int main() {
     
     int64_t min = 0;
     int64_t max = 0;
-    int64_t sum = 0;
+//    int64_t sum = 0;
     
     
     

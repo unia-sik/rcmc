@@ -8,6 +8,7 @@ int MPI_Send(const void *buf,
              int tag,
              MPI_Comm comm)
 {
+    assert (((ptrdiff_t)buf & (sizeof(flit_t)-1)) == 0);
     int len = count*sizeof_mpi_datatype(type);
     cid_t cid = cid_from_comm(comm, dest);
     pimp2_send_flit(cid, headflit_from_tag_and_len(tag, len));

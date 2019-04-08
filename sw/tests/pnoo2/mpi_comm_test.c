@@ -13,7 +13,7 @@ int sum_to_max(MPI_Comm comm) {
 int main() {    
     MPI_Init(0, 0);
 
-    uint64_t root = fgmp_addr_to_rank(fgmp_addr_x(MPI_COMM_WORLD->address), 0);
+    uint64_t root = pnoo_addr_to_rank(pnoo_addr_x(MPI_COMM_WORLD->address), 0);
     mpi_communicator_t currentRow = MPI_New_Comm(
         root,
         1,

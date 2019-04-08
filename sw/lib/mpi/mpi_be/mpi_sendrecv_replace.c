@@ -8,6 +8,8 @@
 int MPI_Sendrecv_replace(void *buf, int count, MPI_Datatype datatype, int dest,
     int stag, int source, int rtag, MPI_Comm comm, MPI_Status *status)
 {
+    assert (((ptrdiff_t)buf & (sizeof(flit_t)-1)) == 0);
+
     assert(comm == MPI_COMM_WORLD); // FIXME: is this really necessary?
     cid_t scid = cid_from_comm(comm, dest);
     cid_t rcid = cid_from_comm(comm, source);

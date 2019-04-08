@@ -4,6 +4,8 @@
 int MPI_Recv(void *buf, int count, MPI_Datatype datatype, int source, int tag,
     MPI_Comm comm, MPI_Status *status)
 {
+    assert (((ptrdiff_t)buf & (sizeof(flit_t)-1)) == 0);
+
     cid_t c = cid_from_comm(comm, source);
     flit_t f = pimp2_recv_flit(c);
     status->MPI_SOURCE = source;

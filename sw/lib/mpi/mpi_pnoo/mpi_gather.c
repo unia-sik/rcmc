@@ -26,13 +26,14 @@ int MPI_Gather(
     
     int local_size = sendcount * sizeof_mpi_datatype(sendtype);    
     
-    if ((MPI_Gather_fix_rank(comm->rank, root, comm->size) & 1) == 0 && MPI_Gather_fix_rank(comm->rank, root, comm->size) < comm->size - 1) {
-        pnoo_srdy(pnoo_addr_from_rank(MPI_Gather_fix_rank(comm->rank, root, comm->size) + 1, comm) + comm->root);        
-    }    
+    int relrank = MPI_Gather_fix_rank(comm->rank, root, comm->size);
+    if ((relrank & 1) == 0 && relrank < comm->size - 1) {
+        pnoo_srdy(pnoo_addr_from_rank(relrank + 1, comm) + comm->root);        
+    }   
      
     for (int i = 1; i < comm->size; i = i << 1) {
-        if ((MPI_Gather_fix_rank(comm->rank, root, comm->size) & i) != 0) {
-            uint64_t dest = pnoo_addr_from_rank(MPI_Gather_fix_rank(comm->rank, root, comm->size) - i, comm) + comm->root;
+        if ((relrank & i) != 0) {
+            uint64_t dest = pnoo_addr_from_rank(relrank - i, comm) + comm->root;
             
             pnoo_bsf();
             pnoo_snd(dest, local_size);
@@ -51,16 +52,16 @@ int MPI_Gather(
                 }
             }
             
-            if (MPI_Gather_fix_rank(comm->rank, root, comm->size) + i < comm->size) {
-                uint64_t src = pnoo_addr_from_rank(MPI_Gather_fix_rank(comm->rank, root, comm->size) + i, comm) + comm->root;
+            if (relrank + i < comm->size) {
+                uint64_t src = pnoo_addr_from_rank(relrank + i, comm) + comm->root;
                 
                 pnoo_bre();
                 uint64_t tmp = pnoo_rcvp();
                 mpi_transfer_recv(src, tmp, recvbuf + local_size);
                 local_size += tmp;
                 
-                if (MPI_Gather_fix_rank(comm->rank, root, comm->size) + (i << 1) < comm->size) {
-                    pnoo_srdy(pnoo_addr_from_rank(MPI_Gather_fix_rank(comm->rank, root, comm->size) + (i << 1), comm) + comm->root);                
+                if (relrank + (i << 1) < comm->size) {
+                    pnoo_srdy(pnoo_addr_from_rank(relrank + (i << 1), comm) + comm->root);                
                 }
             }
         }

@@ -8,3 +8,34 @@ mpi_communicator_t MPI_New_Comm(
 ) {
     return pnoo_info_virtual(pnoo_addr_from_rank(root, comm) + comm->root, width, height);
 }
+
+
+
+
+// TODO: implementation!
+
+int MPI_Group_incl(MPI_Group group, int n, const int ranks[], MPI_Group *new)
+{
+    return MPI_SUCCESS;
+}
+int MPI_Group_rank(MPI_Group group, int *rank)
+{
+    return MPI_SUCCESS;
+}
+
+int MPI_Comm_create(MPI_Comm comm, MPI_Group group, MPI_Comm *new)
+{
+    return MPI_SUCCESS;
+}
+
+int MPI_Group_free(MPI_Group *group)
+{
+    return MPI_SUCCESS;
+}
+
+int MPI_Comm_free(MPI_Comm *comm)
+{
+    return MPI_SUCCESS;
+}
+
+

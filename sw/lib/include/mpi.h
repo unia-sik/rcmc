@@ -8,6 +8,10 @@ extern "C" {
 
 #include <stdint.h>
 
+#ifdef RCMC_MPILIB_pnoo
+#include "pnoo.h"
+#endif
+
 
 // datatypes
 // lowest 8 bits are equal to the size in bytes
@@ -49,7 +53,7 @@ extern "C" {
 typedef int MPI_Datatype;
 typedef int MPI_Op;
 
-#ifdef RCMC_ONE_TO_ONE
+#ifdef RCMC_MPILIB_pnoo
 typedef struct {
     void* buf;                   // initial address of receive buffer
     int count;                   // maximum number of elements in receive buffer
@@ -74,7 +78,7 @@ typedef struct {
 } mpi_group_t;
 typedef mpi_group_t *MPI_Group;
 
-#ifdef RCMC_ONE_TO_ONE
+#ifdef RCMC_MPILIB_pnoo
 typedef pnoo_info_t mpi_communicator_t;
 #else
 typedef struct {
@@ -153,18 +157,40 @@ int MPI_Comm_create(MPI_Comm comm, MPI_Group group, MPI_Comm *new);
 int MPI_Comm_free(MPI_Comm *comm);
 
 
-#ifndef RCMC_ONE_TO_ONE
-
-static inline int MPI_Comm_size(MPI_Comm comm, int *size)
+static inline int MPI_Comm_rank(MPI_Comm comm, int *rank)
 {
-    *size = comm->group.size;
+    *rank = comm->rank;
     return MPI_SUCCESS;
 }
 
 
-static inline int MPI_Comm_rank(MPI_Comm comm, int *rank)
+#ifdef RCMC_MPILIB_pnoo
+
+static inline int MPI_Comm_size(MPI_Comm comm, int *size)
 {
-    *rank = comm->rank;
+    *size = comm->size;
+    return MPI_SUCCESS;
+}
+
+mpi_communicator_t MPI_New_Comm(
+    const uint32_t root,         // The root of the new rectangle (root = lower left corner)
+    const uint32_t width,        // width of the rectangle
+    const uint32_t height,       // height of the rectangle
+    MPI_Comm comm                // current communicator
+);
+
+// TODO: not implemented yet
+static inline int MPI_Comm_group(MPI_Comm comm, MPI_Group *group)
+{
+    return MPI_SUCCESS;
+}
+
+
+#else
+
+static inline int MPI_Comm_size(MPI_Comm comm, int *size)
+{
+    *size = comm->group.size;
     return MPI_SUCCESS;
 }
 
@@ -176,14 +202,14 @@ static inline int MPI_Comm_group(MPI_Comm comm, MPI_Group *group)
     return MPI_SUCCESS;
 }
 
+#endif
+
 
 static inline int MPI_Group_size(MPI_Group group, int *size)
 {
     *size = group->size;
     return MPI_SUCCESS;
 }
-
-#endif
 
 
 static inline int MPI_Finalize()

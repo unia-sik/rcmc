@@ -19,7 +19,7 @@ $(BUILD_DIR):
 	mkdir $(BUILD_DIR)
 
 $(BUILD_DIR)%.$(ARCH).o: %.c
-	$(CC) $(CFLAGS) -g -O2 -Wall -c -o $@ $^
+	$(CC) $(CFLAGS) $(ADD_CFLAGS) -g -O2 -Wall -c -o $@ $^
 
 $(LIB_PATH): $(O_FILES)
 	ar -rc $@ $^

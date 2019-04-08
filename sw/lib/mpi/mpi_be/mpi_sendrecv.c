@@ -6,6 +6,9 @@ int MPI_Sendrecv(const void *sbuf, int scount, MPI_Datatype stype, int dest, int
     void *rbuf, int rcount, MPI_Datatype rtype, int source, int rtag,
     MPI_Comm comm, MPI_Status *status)
 {
+    assert (((ptrdiff_t)sbuf & (sizeof(flit_t)-1)) == 0);
+    assert (((ptrdiff_t)rbuf & (sizeof(flit_t)-1)) == 0);
+
     cid_t scid = cid_from_comm(comm, dest);
     cid_t rcid = cid_from_comm(comm, source);
 

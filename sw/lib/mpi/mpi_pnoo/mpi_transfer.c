@@ -1,4 +1,8 @@
 #include "mpi_internal.h"
+#include <string.h>
+
+#define ALIGN_MASK (sizeof(flit_t)-1)
+#define ROUNDUP(x) ((x+sizeof(flit_t)-1)/sizeof(flit_t))
 
 void mpi_transfer_send(    
     int dest,                   // address of destination
@@ -6,15 +10,28 @@ void mpi_transfer_send(
     const void* buf            // initial address of send buffer
 )
 {
+    // if buffers are unaligned, make an aligned copy on the stack
+    flit_t aligned[ROUNDUP(count)];
+    if (((ptrdiff_t)buf & ALIGN_MASK) != 0) {
+        memcpy(aligned, buf, count);
+        buf = &aligned;
+    }
+
     pnoo_block_send_no_srdy(dest, count, (void*)buf);
 }
 
 void mpi_transfer_recv(
     int src,                    // address of source
     int count,                  // number of bytes in recv buffer (nonnegative integer)
-    const void* buf            // initial address of recv buffer
+    void* buf            // initial address of recv buffer
 )
 {
+    // receive to aligned buffer and than copy exact (unaligned) size to 
+    // possibly unaligned memory adress
+    flit_t aligned[ROUNDUP(count)];
+    pnoo_block_recv_no_srdy(src, count, aligned);
+    memcpy(buf, aligned, count);
+/*
     uint64_t offset = count & 0x7;
     
     if (offset == 0) {
@@ -31,7 +48,7 @@ void mpi_transfer_recv(
             (((uint64_t*)buf)[(count / 8)] & (overrideMask)) |
             (overrideBuffer[1] & (~overrideMask));
     }
-    
+*/
 }
 
 void mpi_transfer_send_recv(
@@ -42,8 +59,16 @@ void mpi_transfer_send_recv(
     void* data_recv
 )
 {
+    // 1. copy send buffer to an aligned buffer
+    // 2. send and receive to two local aligned buffers
+    // 3. copy aligned receive buffer to possibly unaliged receive buffer
+    flit_t aligned_s[ROUNDUP(count)];
+    flit_t aligned_r[ROUNDUP(count)];
+    memcpy(aligned_s, data_send, count);
+    pnoo_block_send_recv_no_srdy(dest, src, count, aligned_s, aligned_r);
+    memcpy(data_recv, aligned_r, count);
+/*
     uint64_t offset = count & 0x7;
-    
     if (offset == 0) {
         //is aligned
         pnoo_block_send_recv_no_srdy(dest, src, count, data_send, data_recv);
@@ -58,6 +83,7 @@ void mpi_transfer_send_recv(
             (((uint64_t*)data_recv)[(count / 8)] & (overrideMask)) |
             (overrideBuffer[1] & (~overrideMask));
     }
+*/
 }
 
 

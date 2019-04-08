@@ -1,5 +1,4 @@
 #pragma once
-#define RCMC_ONE_TO_ONE
 #include "pnoo.h"
 #include "mpi.h"
 
@@ -20,7 +19,7 @@ void mpi_transfer_send(
 void mpi_transfer_recv(
     int src,                    // address of source
     int count,                  // number of bytes in recv buffer (nonnegative integer)
-    const void* buf            // initial address of recv buffer
+    void* buf            // initial address of recv buffer
 );
 
 void mpi_transfer_send_recv(

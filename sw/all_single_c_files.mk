@@ -11,7 +11,7 @@ ELF_FILES = $(PROGRAMS:%=$(BUILD_DIR)%.$(ARCH).elf)
 
 
 $(BUILD_DIR)%.$(ARCH).elf: %.c
-	$(CC) $(CFLAGS) -Wall -O2 -g -o $@ $^ $(ADD_CFLAGS) $(LDFLAGS)
+	$(CC) $(CFLAGS) -Wall -O2 -g -o $@ $^ $(ADD_CFLAGS) $(LDFLAGS) $(ADD_LDFLAGS)
 
 
 all: libraries $(BUILD_DIR) $(ELF_FILES)
