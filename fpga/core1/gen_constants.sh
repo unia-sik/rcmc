@@ -92,16 +92,16 @@ EOL
 
 
 printf "  constant conf_bypass_y : Bypass := "
-print_bypass `echo $2 | cut -c1`
-printf ";\n  constant conf_bypass_x : Bypass := "
 print_bypass `echo $2 | cut -c2`
+printf ";\n  constant conf_bypass_x : Bypass := "
+print_bypass `echo $2 | cut -c3`
 printf ";\n  constant conf_stall_y  : Stall  := "
-print_stall `echo $2 | cut -c3`
-printf ";\n  constant conf_stall_x  : Stall  := "
 print_stall `echo $2 | cut -c4`
+printf ";\n  constant conf_stall_x  : Stall  := "
+print_stall `echo $2 | cut -c5`
 printf ";\n  constant conf_inject_y : Inject := "
-print_inject `echo $2 | cut -c5`
-printf ";\n  constant conf_inject_x : Inject := "
 print_inject `echo $2 | cut -c6`
+printf ";\n  constant conf_inject_x : Inject := "
+print_inject `echo $2 | cut -c7`
 printf ";\nend constants;\n"
 

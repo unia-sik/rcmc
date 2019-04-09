@@ -36,7 +36,7 @@ architecture rtl of memory_stage is
 		variable be : std_logic_vector(63 downto 0); -- byte extended
 		variable he : std_logic_vector(63 downto 0); -- halfword extended
 		variable we : std_logic_vector(63 downto 0); -- word extended
-		variable q  : std_logic_vector(63 downto 0);
+		variable tmp  : std_logic_vector(63 downto 0);
 	begin
 		b := (others => '0');
 		h := (others => '0');
@@ -86,58 +86,58 @@ architecture rtl of memory_stage is
 		end if;
 
 		if byteen = "11111111" then
-			q := data;
+			tmp := data;
 		elsif byteen = "00001111" or byteen = "11110000" then
-			q := we;
+			tmp := we;
 		elsif byteen = "00000011" or byteen = "00001100" or byteen = "00110000" or byteen = "11000000" then
-			q := he;
+			tmp := he;
 		else
-			q := be;
+			tmp := be;
 		end if;
 
-		return q;
+		return tmp;
 	end function rdataout;
 
 	function wdataout(
 		byteen : std_logic_vector(7 downto 0);
 		data   : std_logic_vector(63 downto 0)
 		) return std_logic_vector is
-		variable q : std_logic_vector(63 downto 0);
+		variable tmp : std_logic_vector(63 downto 0);
 	begin
-		q := data;
+		tmp := data;
 		case byteen is
 			when "00000001" =>
-				q(7 downto 0) := data(7 downto 0);
+				tmp(7 downto 0) := data(7 downto 0);
 			when "00000010" =>
-				q(15 downto 8) := data(7 downto 0);
+				tmp(15 downto 8) := data(7 downto 0);
 			when "00000100" =>
-				q(23 downto 16) := data(7 downto 0);
+				tmp(23 downto 16) := data(7 downto 0);
 			when "00001000" =>
-				q(31 downto 24) := data(7 downto 0);
+				tmp(31 downto 24) := data(7 downto 0);
 			when "00010000" =>
-				q(39 downto 32) := data(7 downto 0);
+				tmp(39 downto 32) := data(7 downto 0);
 			when "00100000" =>
-				q(47 downto 40) := data(7 downto 0);
+				tmp(47 downto 40) := data(7 downto 0);
 			when "01000000" =>
-				q(55 downto 48) := data(7 downto 0);
+				tmp(55 downto 48) := data(7 downto 0);
 			when "10000000" =>
-				q(63 downto 56) := data(7 downto 0);
+				tmp(63 downto 56) := data(7 downto 0);
 			when "00000011" =>
-				q(15 downto 0) := data(15 downto 0);
+				tmp(15 downto 0) := data(15 downto 0);
 			when "00001100" =>
-				q(31 downto 16) := data(15 downto 0);
+				tmp(31 downto 16) := data(15 downto 0);
 			when "00110000" =>
-				q(47 downto 32) := data(15 downto 0);
+				tmp(47 downto 32) := data(15 downto 0);
 			when "11000000" =>
-				q(63 downto 48) := data(15 downto 0);
+				tmp(63 downto 48) := data(15 downto 0);
 			when "00001111" =>
-				q(31 downto 0) := data(31 downto 0);
+				tmp(31 downto 0) := data(31 downto 0);
 			when "11110000" =>
-				q(63 downto 32) := data(31 downto 0);
+				tmp(63 downto 32) := data(31 downto 0);
 			when others => null;
 		end case;
 
-		return q;
+		return tmp;
 	end function wdataout;
 
 	signal r, rin : memory_reg_type;

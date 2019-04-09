@@ -81,9 +81,7 @@ begin
     clk => CLOCK_50
   );
 
-  BufferToProcessor.Data <= (others => '0');
-  BufferToProcessor.Address <= (others => '0');
-  BufferToProcessor.DataAvailable <= '0';
+  BufferToProcessor <= ZeroPortBuffer;
   SendBufferFull <= '0';
 
   LEDR(0) <= ProcessorToBuffer.DataAvailable;

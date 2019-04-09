@@ -124,11 +124,14 @@ begin
 			SB_FIFO_FILL_LEVEL   := 0;
 			SB_FIFO_WR_DATA1_EN  := false;
 
-			NorthOut.DataAvailable <= '0';
-			NorthOut.Marked        <= '0';
-			EastOut.DataAvailable  <= '0';
-			EastOut.Marked         <= '0';
+--			NorthOut.DataAvailable <= '0';
+--			NorthOut.Marked        <= '0';
+--			EastOut.DataAvailable  <= '0';
+--			EastOut.Marked         <= '0';
+            NorthOut <= ZeroPortVertical;
+            EastOut <= ZeroPortHorizontal;
 			LocalOut.DataAvailable <= '0';
+            
 
 			WestOut.Request  <= '0';
 			SouthOut.Request <= '0';

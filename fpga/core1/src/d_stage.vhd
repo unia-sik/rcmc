@@ -72,14 +72,14 @@ architecture rtl of decode_stage is
 		waddr : std_logic_vector(4 downto 0);
 		we    : std_logic
 		) return std_logic_vector is
-		variable q : std_logic_vector(63 downto 0);
+		variable tmp : std_logic_vector(63 downto 0);
 	begin
 		if we = '1' and waddr = raddr then -- forward
-			q := wdata;
+			tmp := wdata;
 		else
-			q := rdata;
+			tmp := rdata;
 		end if;
-		return q;
+		return tmp;
 	end function forward;
 
 	signal r, rin : decode_reg_type;

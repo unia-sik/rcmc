@@ -57,7 +57,7 @@ architecture rtl of execute_stage is
         res       : out std_logic_vector(63 downto 0);
         brcond    : out std_logic;
         rcvEmpty  : in std_logic;
-        sendFull  : in std_logic;
+        SndFull  : in std_logic;
         BarrierSet: in std_logic;
         fgmop     : in std_logic) is
         variable au : unsigned(63 downto 0); -- a unsigned
@@ -135,8 +135,8 @@ architecture rtl of execute_stage is
         -- branch condition evaluation
         if fgmop = '1' then
             case func1 is
-                when FUNC_FGMP_BSF    => brcond := sendFull;
-                when FUNC_FGMP_BSNF    => brcond := not sendFull;
+                when FUNC_FGMP_BSF    => brcond := SndFull;
+                when FUNC_FGMP_BSNF    => brcond := not SndFull;
                 when FUNC_FGMP_BRE    => brcond := rcvEmpty;
                 when FUNC_FGMP_BRNE    => brcond := not rcvEmpty;
                 when FUNC_FGMP_BBRR    => brcond := not BarrierSet;
@@ -161,16 +161,16 @@ architecture rtl of execute_stage is
         op1pc   : std_logic;
         op1zero : std_logic
         ) return std_logic_vector is
-        variable q : std_logic_vector(63 downto 0);
+        variable tmp : std_logic_vector(63 downto 0);
     begin
-        q := rs1;
+        tmp := rs1;
         if op1pc = '1' then
-            q := pc;
+            tmp := pc;
         end if;
         if op1zero = '1' then
-            q := (others => '0');
+            tmp := (others => '0');
         end if;
-        return q;
+        return tmp;
     end function aluop1out;
 
     function aluop2out(
@@ -178,13 +178,13 @@ architecture rtl of execute_stage is
         imm    : std_logic_vector(63 downto 0);
         op2imm : std_logic
         ) return std_logic_vector is
-        variable q : std_logic_vector(63 downto 0);
+        variable tmp : std_logic_vector(63 downto 0);
     begin
-        q := rs2;
+        tmp := rs2;
         if op2imm = '1' then
-            q := imm;
+            tmp := imm;
         end if;
-        return q;
+        return tmp;
     end function aluop2out;
 
     function addresscalc(
@@ -193,66 +193,66 @@ architecture rtl of execute_stage is
         pc       : std_logic_vector(63 downto 0);
         rs1pcsel : std_logic
         ) return std_logic_vector is
-        variable q : std_logic_vector(63 downto 0);
+        variable tmp : std_logic_vector(63 downto 0);
     begin
         if rs1pcsel = '1' then          -- OP_JALR, OP_LOAD, OP_STORE
-            q := rs1;
+            tmp := rs1;
         else                            -- OP_JAL, OP_BRANCH
-            q := pc;
+            tmp := pc;
         end if;
-        return (std_logic_vector(unsigned(imm) + unsigned(q)));
+        return (std_logic_vector(unsigned(imm) + unsigned(tmp)));
     end function addresscalc;
 
     function byteenout(
         func : std_logic_vector(1 downto 0);
         addr : std_logic_vector(2 downto 0)
         ) return std_logic_vector is
-        variable q : std_logic_vector(7 downto 0);
+        variable tmp : std_logic_vector(7 downto 0);
     begin
         case func is
             when "00" =>
                 case addr is
                     when "000" =>
-                        q := "00000001";
+                        tmp := "00000001";
                     when "001" =>
-                        q := "00000010";
+                        tmp := "00000010";
                     when "010" =>
-                        q := "00000100";
+                        tmp := "00000100";
                     when "011" =>
-                        q := "00001000";
+                        tmp := "00001000";
                     when "100" =>
-                        q := "00010000";
+                        tmp := "00010000";
                     when "101" =>
-                        q := "00100000";
+                        tmp := "00100000";
                     when "110" =>
-                        q := "01000000";
+                        tmp := "01000000";
                     when "111" =>
-                        q := "10000000";
+                        tmp := "10000000";
                     when others => null;
                 end case;
             when "01" =>
                 case addr(2 downto 1) is
                     when "00" =>
-                        q := "00000011";
+                        tmp := "00000011";
                     when "01" =>
-                        q := "00001100";
+                        tmp := "00001100";
                     when "10" =>
-                        q := "00110000";
+                        tmp := "00110000";
                     when "11" =>
-                        q := "11000000";
+                        tmp := "11000000";
                     when others => null;
                 end case;
             when "10" =>
                 if addr(2) = '0' then
-                    q := "00001111";
+                    tmp := "00001111";
                 else
-                    q := "11110000";
+                    tmp := "11110000";
                 end if;
             when "11" =>
-                q := "11111111";
+                tmp := "11111111";
             when others => null;
         end case;
-        return q;
+        return tmp;
     end function byteenout;
 
     function csralu(
@@ -262,18 +262,18 @@ architecture rtl of execute_stage is
         immsel : std_logic;
         func   : std_logic_vector(1 downto 0)
         ) return std_logic_vector is
-        variable q : std_logic_vector(63 downto 0);
+        variable tmp : std_logic_vector(63 downto 0);
     begin
         if immsel = '1' then
-            q := imm;
+            tmp := imm;
         else
-            q := rs1;
+            tmp := rs1;
         end if;
 
         case func is
-            when FUNC_CSRRS => return (std_logic_vector(unsigned(csrval) or unsigned(q)));
-            when FUNC_CSRRC => return (std_logic_vector(unsigned(csrval) and unsigned(not q)));
-            when others     => return q; -- FUNC_CSRRW
+            when FUNC_CSRRS => return (std_logic_vector(unsigned(csrval) or unsigned(tmp)));
+            when FUNC_CSRRC => return (std_logic_vector(unsigned(csrval) and unsigned(not tmp)));
+            when others     => return tmp; -- FUNC_CSRRW
         end case;
     end function csralu;
 

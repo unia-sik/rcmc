@@ -21,7 +21,8 @@ MYDIR=$(dirname $0)
 
 $MYDIR/gen_constants.sh $1 $2 $3 > constants.vhd
 $MYDIR/gen_noc.sh $1 $1 > NoC.vhd
-$MYDIR/../../tools/shexdump/shexdump -M $5 1 $4 > dmem_ghdl.vhd
+#$MYDIR/../../tools/shexdump/shexdump -M $5 1 $4 > dmem_ghdl.vhd
+$MYDIR/../../tools/shexdump/shexdump -V $5 1 $4 > dmem_ghdl.vhd
 $MYDIR/gen_ghdl.sh > ghdl_analyze.sh
 chmod 775 ghdl_analyze.sh
 
