@@ -13,7 +13,7 @@
 int sbuf[2];
 int rbuf[2*MAX_RANK];
 
-#define ROOT 0//2
+#define ROOT 2
 
 
 int main(int argc,char *argv[])

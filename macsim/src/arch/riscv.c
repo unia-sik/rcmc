@@ -149,7 +149,10 @@
 
 
 #define CHECK_ALIGNMENT(addr, mask) \
-     if (addr&mask) warning(0, "unaligned memory access in cycle %llu", node->cycle)
+    if (addr&mask) warning(0, "unaligned memory access in cycle %llu", node->cycle)
+#define CHECK_COREID(cid) \
+    if (((cid & 0xffff)>=conf_noc_width) || ((cid >> 16)>=conf_noc_height)) \
+        fatal("invalid core id in cycle %llu", node->cycle)
 
 
 
@@ -536,19 +539,13 @@ bool riscv_instruction_uses_reg_s(uint_fast32_t iw) {
         switch (iw & 0x7000) {
           case 0x0000:  // snd
             return true;
+          case 0x1000:  // srdy
+            return true;
           case 0x2000:  // rcvn
             return false;
           case 0x3000:  // rcvp
             return false;
           case 0x4000:  // ibrr
-            return true;
-          default:
-            break;
-        }
-      break;
-    case 0x6b:  // RC/MC
-        switch (iw & 0x7000) {
-          case 0x1000:  // srdy
             return true;
           default:
             break;
@@ -617,20 +614,14 @@ bool riscv_instruction_uses_reg_t(uint_fast32_t iw) {
         switch (iw & 0x7000) {
           case 0x0000:  // snd
             return true;
+          case 0x1000:  // srdy
+            return false;
           case 0x2000:  // rcvn
             return false;
           case 0x3000:  // rcvp
             return false;
           case 0x4000:  // ibrr
             return true;
-          default:
-            break;
-        }
-      break;
-    case 0x6b:  // RC/MC
-        switch (iw & 0x7000) {
-          case 0x1000:  // srdy
-            return false;
           default:
             break;
         }
@@ -1778,6 +1769,7 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
         {
             switch (iw & 0x7000) {
                 case 0x0000: // snd s t
+                    CHECK_COREID(REG_S);
                     statistic_insert_send_flit(&node->stats, REG_S);
                     if (!node->noc_send_flit(node, REG_S, REG_T)) {
                         fatal("RISC-V exception: send buffer full");
@@ -1785,10 +1777,10 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
                     return 1;
                 case 0x1000: // srdy s
                 {
+                    CHECK_COREID(REG_S);
                     if (!node->noc_send_ready(node, REG_S)) {
                         fatal("RISC-V exception: send buffer full");
                     }
-                    
                     return 1;
                 }
                 case 0x2000: // rcvn d
@@ -1797,7 +1789,7 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
                     if (r == -1) {
                         fatal("RISC-V exception: recv buffer empty");
                     }
-                    REG_D = r;                    
+                    REG_D = r;
                     return 1;
                 }
                 case 0x3000: // rcvp d
@@ -1813,6 +1805,8 @@ instruction_class_t riscv_execute_iw(node_t *node, uint_fast32_t iw, uint_fast32
                 }
                 case 0x4000: // ibrr
                 {
+                    CHECK_COREID(REG_S);
+                    CHECK_COREID(REG_T);
                     node->noc_init_barrier(node, REG_S, REG_T);
                     return 1;
                 }
@@ -2402,15 +2396,10 @@ int riscv_disasm_iw(char *d, addr_t pc, uint_fast32_t iw)
         }
         break;
 
-    case 0x6b:
-        switch (iw & 0x7000) {
-        case 0x1000: D4("srdy\t%d");
-        }
-        break;
-
     case 0x5b:
         switch (iw & 0x7000) {
         case 0x0000: D4("snd\t%s, %t");
+        case 0x1000: D4("srdy\t%s");
         case 0x2000: D4("rcvn\t%d");
         case 0x3000: D4("rcvp\t%d");
         case 0x4000: D4("ibrr\t%s, %t");

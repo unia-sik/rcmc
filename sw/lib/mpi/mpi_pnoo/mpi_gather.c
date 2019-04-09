@@ -1,14 +1,7 @@
 #include "mpi_internal.h"
+#include <string.h>
 
-
-int MPI_Gather_fix_rank(int rank, int root, int size) {
-    int result = rank - root;
-    if (result < 0) {
-        result += size;
-    }
-    
-    return result;
-}
+#define MAP_RANK(x) (pnoo_addr_from_rank(((rank+comm->size+(x))%comm->size), comm) + comm->root)
 
 // Gathers together values from a group of processes 
 int MPI_Gather(
@@ -23,49 +16,36 @@ int MPI_Gather(
 )
 {
     MPI_Barrier(comm);
-    
-    int local_size = sendcount * sizeof_mpi_datatype(sendtype);    
-    
-    int relrank = MPI_Gather_fix_rank(comm->rank, root, comm->size);
+
+    int len = sendcount * sizeof_mpi_datatype(sendtype);    
+
+    int rank = comm->rank;
+    int relrank = rank-root;
+    if (relrank<0) relrank += comm->size;
+
     if ((relrank & 1) == 0 && relrank < comm->size - 1) {
-        pnoo_srdy(pnoo_addr_from_rank(relrank + 1, comm) + comm->root);        
-    }   
-     
+        fgmp_send_ready(MAP_RANK(+1));
+    }
+ 
+    memcpy(recvbuf, sendbuf, len);
     for (int i = 1; i < comm->size; i = i << 1) {
         if ((relrank & i) != 0) {
-            uint64_t dest = pnoo_addr_from_rank(relrank - i, comm) + comm->root;
-            
-            pnoo_bsf();
-            pnoo_snd(dest, local_size);
-            
-            if (i == 1) {
-                mpi_transfer_send(dest, local_size, (void*)sendbuf);
-            } else {
-                mpi_transfer_send(dest, local_size, recvbuf);
-            }
-
-            return MPI_SUCCESS;
+            uint64_t dest = MAP_RANK(-i);
+            fgmp_send_flit(dest, len);
+            mpi_transfer_send(dest, len, recvbuf);
+            break;
         } else {
-            if (i == 1) {
-                for (int k = 0; k < local_size; k++) {
-                    ((char*)recvbuf)[k] = ((char*)sendbuf)[k];
-                }
-            }
-            
             if (relrank + i < comm->size) {
-                uint64_t src = pnoo_addr_from_rank(relrank + i, comm) + comm->root;
-                
-                pnoo_bre();
-                uint64_t tmp = pnoo_rcvp();
-                mpi_transfer_recv(src, tmp, recvbuf + local_size);
-                local_size += tmp;
-                
+                uint64_t src = MAP_RANK(+i);
+                fgmp_recv_wait();
+                uint64_t tmp = fgmp_recv_payload();
+                mpi_transfer_recv(src, tmp, recvbuf + len);
+                len += tmp;
                 if (relrank + (i << 1) < comm->size) {
-                    pnoo_srdy(pnoo_addr_from_rank(relrank + (i << 1), comm) + comm->root);                
+                    fgmp_send_ready(MAP_RANK(+(i<<1)));
                 }
             }
         }
     }
-    
     return MPI_SUCCESS;
 }

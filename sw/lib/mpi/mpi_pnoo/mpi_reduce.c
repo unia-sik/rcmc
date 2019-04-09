@@ -1,4 +1,5 @@
 #include "mpi_internal.h"
+#include <string.h>
 
 #define MAX_MIN_SUM_PROD_BIN(type) \
 { \
@@ -55,9 +56,11 @@ int MPI_Reduce_fix_rank(int rank, int root, int size) {
     if (result < 0) {
         result += size;
     }
-    
     return result;
 }
+
+
+#define MAP_RANK(x) (pnoo_addr_from_rank(((rank+comm->size+(x))%comm->size), comm) + comm->root)
 
 // Reduces values on all processes to a single value 
 int MPI_Reduce(
@@ -71,37 +74,33 @@ int MPI_Reduce(
 )
 {
     MPI_Barrier(comm);
-    int local_size = count * sizeof_mpi_datatype(datatype);    
-    char buffer[2 * local_size];
-    
-    if ((MPI_Reduce_fix_rank(comm->rank, root, comm->size) & 1) == 0 && MPI_Reduce_fix_rank(comm->rank, root, comm->size) < comm->size - 1) {
-        pnoo_srdy(pnoo_addr_from_rank(MPI_Reduce_fix_rank(comm->rank, root, comm->size) + 1, comm) + comm->root);        
-    }  
-    
-    for (int k = 0; k < local_size; k++) {
-        ((char*)buffer)[k] = ((char*)sendbuf)[k];
+    int len = count * sizeof_mpi_datatype(datatype);
+    char buffer[2 * len];
+
+    int rank = comm->rank;
+    int redrank = rank-root;
+    if (redrank<0) redrank += comm->size;
+
+    if ((redrank & 1) == 0 && redrank < comm->size - 1) {
+        pnoo_srdy(MAP_RANK(+1));
     }
-                    
+
+    memcpy(buffer, sendbuf, len);
+
     for (int i = 1; i < comm->size; i = i << 1) {
-        if ((MPI_Reduce_fix_rank(comm->rank, root, comm->size) & i) != 0) {
-            mpi_transfer_send(pnoo_addr_from_rank(MPI_Reduce_fix_rank(comm->rank, root, comm->size) - i, comm) + comm->root, local_size, (void*)buffer);
+        if ((redrank & i) != 0) {
+            mpi_transfer_send(MAP_RANK(-i), len, (void*)buffer);
             return MPI_SUCCESS;
         } else {
-            if (MPI_Reduce_fix_rank(comm->rank, root, comm->size) + i < comm->size) {
-                mpi_transfer_recv(pnoo_addr_from_rank(MPI_Reduce_fix_rank(comm->rank, root, comm->size) + i, comm) + comm->root, local_size, buffer + local_size);                
-                
-                if (MPI_Reduce_fix_rank(comm->rank, root, comm->size) + (i << 1) < comm->size) {
-                    pnoo_srdy(pnoo_addr_from_rank(MPI_Reduce_fix_rank(comm->rank, root, comm->size) + (i << 1), comm) + comm->root);                
+            if (redrank + i < comm->size) {
+                mpi_transfer_recv(MAP_RANK(+1), len, buffer + len);
+                if (redrank + (i << 1) < comm->size) {
+                    pnoo_srdy(MAP_RANK(i<<1));
                 }
-                
-                MPI_Reduce_calc_op(buffer, count, datatype, op);  
+                MPI_Reduce_calc_op(buffer, count, datatype, op);
             }
         }
     }
-    
-    for (int k = 0; k < local_size; k++) {
-        ((char*)recvbuf)[k] = ((char*)buffer)[k];
-    }
-    
+    memcpy(recvbuf, buffer, len);
     return MPI_SUCCESS;
 }

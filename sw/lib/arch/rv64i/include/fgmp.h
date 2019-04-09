@@ -116,7 +116,7 @@ static inline xyz_t fgmp_xyz_from_cid(cid_t r)
 
 static inline void fgmp_recv_wait()
 {
-    asm volatile (".insn sb 0x7b, 2, x0, x0, 0\n\t"); // bre $
+    asm volatile ("1: .insn sb 0x7b, 2, x0, x0, 1b\n\t"); // bre $
 }
 
 
@@ -170,6 +170,14 @@ static inline long fgmp_cong()
         "1:\n\t"
         : "=r" (flag));
     return flag;
+}
+
+
+static inline void fgmp_send_ready(xyz_t dest)
+{
+    asm volatile (
+        ".insn r 0x5b, 1, 0, x0, %0, x0\n\t" // srdy dest
+        : : "r" (dest) );
 }
 
 

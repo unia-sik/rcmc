@@ -300,6 +300,7 @@ void pnoo_block_recv_no_srdy(uint64_t src, int n, void* data);
 //void pnoo_block_send_recv(uint64_t dest, uint64_t src, int n, void* data_send, void* data_recv);
 //void pnoo_block_send_recv_no_srdy(uint64_t dest, uint64_t src, int n, void* data_send, void* data_recv);
 
+/*
 void pnoo_block_send_32(uint64_t dest, int n, void* data);
 void pnoo_block_recv_32(uint64_t src, int n, void* data);
 
@@ -308,7 +309,7 @@ void pnoo_block_recv_no_srdy_32(uint64_t src, int n, void* data);
 
 void pnoo_block_send_recv_32(uint64_t dest, uint64_t src, int n, void* data_send, void* data_recv);
 void pnoo_block_send_recv_no_srdy_32(uint64_t dest, uint64_t src, int n, void* data_send, void* data_recv);
-
+*/
 
 
 static inline void pnoo_block_send_recv_no_srdy(uint64_t dest, uint64_t src, int n, void* data_send, void* data_recv) {    

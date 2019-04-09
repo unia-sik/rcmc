@@ -20,6 +20,7 @@ pnoo_context_t* pnoo_get_context(node_t* node)
 bool pnoo_send_flit(node_t* node, rank_t dest, flit_t flit)
 {    
     dest = (dest & 0xFFFF) + ((dest & 0xFFFF0000) >> 16) * conf_noc_width;
+//printf("S %lx->%lx [%lx]\n", node->rank, dest, flit);
     pnoo_context_t* context = pnoo_get_context(node);
     pnoo_msg_t msg = pnoo_msg_init_with_data(node->rank, dest, flit);   
     
@@ -61,6 +62,7 @@ bool pnoo_recv_flit(node_t* node, rank_t src, flit_t* flit)
             pnoo_context_add_timed_event(contextSrc, sendTime, PNOO_EVENT_RDY_RECV_COMMIT, &msg, true);
         }
 
+//printf("R %lx->%lx [%lx]\n", src, node->rank, *flit);
         return true;
     }
 
@@ -76,6 +78,7 @@ bool pnoo_sender_ready(node_t* node)
 bool pnoo_send_ready(node_t* node, rank_t dest)
 {
     dest = (dest & 0xFFFF) + ((dest & 0xFFFF0000) >> 16) * conf_noc_width;
+//printf("srdy %lx<-%lx\n", dest, node->rank);
     pnoo_context_t* context = pnoo_get_context(node);
     pnoo_context_t* contextDest = pnoo_get_context(nodes[dest]);
     cycle_t sendTime = pnoo_timing_calc_access_time(node);
