@@ -78,7 +78,6 @@ package libproc is
 	
 	component dmem
 		port (
-            rst : IN std_logic;    
 			clk	: in  std_logic;
 			ici	: in  icache_in_type;
 			ico	: out icache_out_type;

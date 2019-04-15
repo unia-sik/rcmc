@@ -15,12 +15,12 @@ then
   echo "Installing latest commit of GHDL to $TARGETDIR"
   COMMIT=master
 else
-  echo "Installing commit $COMMIT of GHDL to $TARGETDIR"
+  echo "Installing commit $1 of GHDL to $TARGETDIR"
   COMMIT="$1"
 fi
 
 rm -rf ghdl
-git clone https://github.com/tgingold/ghdl.git
+git clone https://github.com/ghdl/ghdl.git
 cd ghdl
 git checkout $COMMIT
 ./configure --prefix=$TARGETDIR --with-llvm-config

@@ -276,7 +276,6 @@ void marek_vector_write_prefix(FILE *f, unsigned bytewidth, unsigned blocklen)
         "ENTITY dmem IS\n"
         "  PORT\n"
         "  (\n"
-        "  Rst   : IN std_logic;\n"
         "  clk   : in  std_logic;\n"
         "  ici   : in  icache_in_type;\n"
         "  ico   : out icache_out_type;\n"

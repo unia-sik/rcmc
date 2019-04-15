@@ -87,7 +87,7 @@ ${GHDL} -e ${FLAGS} NoC
 TIME_ANALYSIS=$(date +%s)
 echo "${COL_MSG} ($((TIME_ANALYSIS-TIME_MACSIM)) seconds)${COL_NONE}"
 printf "GHDL simulation"
-${GHDL} -r ${FLAGS} NoC --stop-time=$(($MACSIM_CYCLES+1+$GHDL_CYCLE_DRIFT))ns --vcd=ghdl.vcd 2> ghdl.log
+${GHDL} -r ${FLAGS} NoC --ieee-asserts=disable --stop-time=$(($MACSIM_CYCLES+1+$GHDL_CYCLE_DRIFT))ns --vcd=ghdl.vcd 2> ghdl.log
 cd ..
 
 

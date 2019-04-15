@@ -69,7 +69,6 @@ begin
 		);
 
 	MEM1 : dmem port map(
-            rst   => rst_n,
 			clk   => clk_inv,
 			ici   => ici,
 			ico   => ico,

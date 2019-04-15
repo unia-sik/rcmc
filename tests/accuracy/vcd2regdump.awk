@@ -11,7 +11,7 @@
 #   pnoo:           awk -v drift=3 -v coreid=generate
 
 BEGIN {
-    if (coreid != "generate" && coreid != "nocunit") {
+    if (coreid != "generate" && coreid != "nocunit" && coreid != "oldgen") {
         printf "Unknown method to determine core ID" > /dev/stderr
         exit 1
     }
@@ -43,7 +43,7 @@ BEGIN {
                 else break;
             }
         }
-    } else if (coreid == "generate") {
+    } else if (coreid == "oldgen") {
         if ($3 ~ /\([0-9]+\)/) {
             # $scope module ( )
             i = substr(substr($3, 1, length($3)-1), 2);
@@ -55,6 +55,21 @@ BEGIN {
                 core = core_y*width + i;
             }
             #printf "module (%d) depth %d => core %d\n", i, depth, core
+        }
+    } else if (coreid == "generate") {
+        if ($3 ~ /\([0-9]+\)/) {
+            # $scope module ( )
+            i = $3;
+            sub(/.*\(/,"", i);
+            sub(/\).*/,"", i);
+            dim = substr($3, 6, 1);
+            if (dim=="y") {
+                core_y = i
+                core_x = 0;
+                core = -1
+            } else if (dim=="x") {
+                core = core_y*width + i;
+            }
         }
     }
 }
