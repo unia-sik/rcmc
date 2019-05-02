@@ -1,98 +1,86 @@
 #ifndef _MPI_H
 #define _MPI_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 
 #include <stdint.h>
 
-#ifdef RCMC_MPILIB_pnoo
+
+
+////////////////////////////////////////////////////////////////////////
+// Choose implementation
+////////////////////////////////////////////////////////////////////////
+
+#if defined(RCMC_MPI_FLOWCONTROL)
+#define _MPI_PREFIX(x) mpi_fc_ ## x
+
+//#elif defined(RCMC_MPI_HANDSHAKE_EXPLICIT)
+//# define _MPI_PREFIX(x) mpi_he_ ## x
+//#elif defined(RCMC_MPI_HANDSHAKE_IMPLICIT)
+//# define _MPI_PREFIX(x) mpi_hi_ ## x
+
+//#elif defined(RCMC_MPI_HANDSHAKE_SOFTWARE)
+#else
+#define _MPI_PREFIX(x) mpi_hs_ ## x
+#endif
+
+
+
+#define MPI_Init                _MPI_PREFIX(Init)
+#define MPI_Get_count           _MPI_PREFIX(Get_count)
+#define MPI_Send                _MPI_PREFIX(Send)
+#define MPI_Recv                _MPI_PREFIX(Recv)
+#define MPI_Irecv               _MPI_PREFIX(Irecv)
+#define MPI_Wait                _MPI_PREFIX(Wait)
+#define MPI_Sendrecv            _MPI_PREFIX(Sendrecv)
+#define MPI_Sendrecv_replace    _MPI_PREFIX(Sendrecv_replace)
+#define MPI_Barrier             _MPI_PREFIX(Barrier)
+#define MPI_Bcast               _MPI_PREFIX(Bcast)
+#define MPI_Gather              _MPI_PREFIX(Gather)
+#define MPI_Gatherv             _MPI_PREFIX(Gatherv)
+#define MPI_Allgather           _MPI_PREFIX(Allgather)
+#define MPI_Scatter             _MPI_PREFIX(Scatter)
+#define MPI_Scatterv            _MPI_PREFIX(Scatterv)
+#define MPI_Alltoall            _MPI_PREFIX(Alltoall)
+#define MPI_Alltoallv           _MPI_PREFIX(Alltoallv)
+#define MPI_Reduce              _MPI_PREFIX(Reduce)
+#define MPI_Allreduce           _MPI_PREFIX(Allreduce)
+#define MPI_Group_incl          _MPI_PREFIX(Group_incl)
+#define MPI_Group_rank          _MPI_PREFIX(Group_rank)
+#define MPI_Group_free          _MPI_PREFIX(Group_free)
+#define MPI_Comm_create         _MPI_PREFIX(Comm_create)
+#define MPI_Comm_free           _MPI_PREFIX(Comm_free)
+#define MPI_Comm_rank           _MPI_PREFIX(Comm_rank)
+#define MPI_Comm_size           _MPI_PREFIX(Comm_size)
+#define MPI_Comm_group          _MPI_PREFIX(Comm_group)
+#define MPI_Group_size          _MPI_PREFIX(Group_size)
+#define MPI_Finalize            _MPI_PREFIX(Finalize)
+#define MPI_Abort               _MPI_PREFIX(Abort)
+
+#define parop_comm_split_consecutive    _MPI_PREFIX(parop_comm_split_consecutive)
+#define fgmp_def_collection             _MPI_PREFIX(fgmp_def_collection)
+#define fgmp_comm_world                 _MPI_PREFIX(fgmp_comm_world)
+
+
+
+
+
+////////////////////////////////////////////////////////////////////////
+// Data structures
+////////////////////////////////////////////////////////////////////////
+
+
+#if defined(RCMC_MPI_FLOWCONTROL)
 #include "pnoo.h"
-#endif
-
-
-// datatypes
-// lowest 8 bits are equal to the size in bytes
-#define MPI_INT8_T      0x001
-#define MPI_INT16_T     0x002
-#define MPI_INT32_T     0x004
-#define MPI_INT64_T     0x008
-#define MPI_UINT8_T     0x101
-#define MPI_UINT16_T    0x102
-#define MPI_UINT32_T    0x104
-#define MPI_UINT64_T    0x108
-
-#define MPI_BYTE        0x001
-#define MPI_CHAR        0x001
-#define MPI_SHORT       (sizeof(short)) // architecture dependent!
-#define MPI_INT         (sizeof(int))   // architecture dependent!
-#define MPI_FLOAT       0x204
-#define MPI_DOUBLE      0x208
-
-
-// reduction operations
-#define MPI_MAX 0
-#define MPI_MIN 1
-#define MPI_SUM 2
-#define MPI_PROD 3
-#define MPI_BAND 5
-#define MPI_BOR 7
-#define MPI_BXOR 9
-#define _IS_ARITH_OP(op)    ((op)<4)
-
-
-#define MPI_UNDEFINED   (-1)
-#define MPI_SUCCESS     0
-#define MPI_COMM_NULL   0
-#define MPI_GROUP_NULL  0
-#define MPI_GROUP_EMPTY (void *)(-1)
-
-
-typedef int MPI_Datatype;
-typedef int MPI_Op;
-
-#ifdef RCMC_MPILIB_pnoo
-typedef struct {
-    void* buf;                   // initial address of receive buffer
-    int count;                   // maximum number of elements in receive buffer
-    int source;                  // source-rank
-    int tag;                     // tag
-    MPI_Datatype datatype;       // datatype of each receive buffer element
-} MPI_Request;
+#include "../mpi/fc/fc_types.h"
 #else
-typedef int MPI_Request;
+#include "../mpi/hs/hs_types.h"
 #endif
 
-typedef struct {
-    int MPI_SOURCE;
-    int MPI_TAG;
-    int MPI_ERROR;
-    int len; // in bytes
-} MPI_Status;
 
-typedef struct {
-    int16_t     size; // number of processes
-    int16_t     cids[1];
-} mpi_group_t;
-typedef mpi_group_t *MPI_Group;
 
-#ifdef RCMC_MPILIB_pnoo
-typedef pnoo_info_t mpi_communicator_t;
-#else
-typedef struct {
-    int         rank;
-    mpi_group_t group;
-}  mpi_communicator_t;
-#endif
-
-typedef mpi_communicator_t *MPI_Comm;
-
-extern mpi_communicator_t mpi_comm_world;
-#define MPI_COMM_WORLD (&mpi_comm_world)
-#define _MPI_GROUP_WORLD (&mpi_comm_world.group)
-
+////////////////////////////////////////////////////////////////////////
+// Prototypes
+////////////////////////////////////////////////////////////////////////
 
 
 int MPI_Init(int *argc, char ***argv);
@@ -164,7 +152,7 @@ static inline int MPI_Comm_rank(MPI_Comm comm, int *rank)
 }
 
 
-#ifdef RCMC_MPILIB_pnoo
+#ifdef RCMC_MPI_FLOWCONTROL
 
 static inline int MPI_Comm_size(MPI_Comm comm, int *size)
 {
@@ -231,9 +219,5 @@ MPI_Comm fgmp_def_collection(int *colors);
 MPI_Comm fgmp_comm_world(int n);
 
 
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // !_MPI_H

@@ -1,14 +1,12 @@
 # Build all .c files and put the .o files in a library in the arch tree
 include ../../arch/arch_dependent.mk
 
-LIB_PATH = $(RCMC_ROOT)sw/lib/arch/$(ARCH)/lib/$(LIB_NAME).a
-
-BUILD_DIR = build/
+BUILD_DIR = $(RCMC_ROOT)sw/lib/mpi/build/
 C_FILES = $(wildcard *.c)
 O_FILES = $(C_FILES:%.c=$(BUILD_DIR)%.$(ARCH).o)
 
 .PHONY: all
-all: $(BUILD_DIR) $(LIB_PATH)
+all: $(BUILD_DIR) $(O_FILES)
 
 .PHONY: clean
 clean:
@@ -19,7 +17,4 @@ $(BUILD_DIR):
 	mkdir $(BUILD_DIR)
 
 $(BUILD_DIR)%.$(ARCH).o: %.c
-	$(CC) $(CFLAGS) $(ADD_CFLAGS) -g -O2 -Wall -c -o $@ $^
-
-$(LIB_PATH): $(O_FILES)
-	ar -rc $@ $^
+	$(CC) $(CFLAGS) $(ADD_CFLAGS) -s -O2 -Wall -c -o $@ $^

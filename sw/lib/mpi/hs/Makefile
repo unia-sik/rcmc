@@ -1,0 +1,2 @@
+ADD_CFLAGS = -DRCMC_MPI_HANDSHAKE_SOFTWARE
+include ../library.mk

@@ -9,10 +9,6 @@ C_FILES = $(wildcard *.c)
 S_FILES = $(filter-out crt.S, $(wildcard *.S))
 O_FILES = $(C_FILES:%.c=$(BUILD_DIR)%.o) $(S_FILES:%.S=$(BUILD_DIR)%.o)
 
-$(info c $(C_FILES))
-$(info S $(S_FILES))
-$(info o $(O_FILES))
-
 .PHONY: all
 all: $(BUILD_DIR) $(LIB_COPPER) $(LIB_PLASTIC)
 

@@ -55,15 +55,19 @@ use ieee.std_logic_1164.all;
 use IEEE.math_real.all;
 
 package constants is
-  --Data Bits
+  -- Data Bits
   constant Data_Length : natural := 64;
 
-  --Width(Height) of Network
+  -- width/height of the complete Network
 EOL
 
 echo "  constant Dimension : natural := $1;"
 
 cat <<EOL
+  -- width/height of the really synthesized part of the NoC
+  -- Can be used if the complete NoC is too large to be synthesized.
+  -- All ports and addresses have the larger width according to Dimension,
+  -- but only dimNoJoke x dimNoJoke nodes are synthesized.
   constant dimNoJoke : natural := Dimension;
 
   --Address Bits for X Direction
@@ -77,8 +81,10 @@ echo "  constant Corner_Buffer_Size : natural := $3;"
 
 cat <<EOL
 
-  --Routing
-  type Routing_Protocol is (CONF_PNOO, CONF_PNOO_DOUBLE_CORNER_BUFFER, CONF_PNOO_SORT, CONF_PNOO_EMPTY, CONF_PNOO_NO_RDY, CONF_PNOO_SRR, CONF_PNOO_DRR, CONF_PNOO_CG, CONF_PNAA, CONF_PNOA);
+  -- Choose a router implementation
+  type Routing_Protocol is (CONF_PNOO, CONF_PNOO_DOUBLE_CORNER_BUFFER,
+    CONF_PNOO_SORT, CONF_PNOO_EMPTY, CONF_PNOO_NO_RDY, CONF_PNOO_SRR,
+    CONF_PNOO_DRR, CONF_PNOO_CG, CONF_PNAA, CONF_PNOA);
   constant conf_routing : Routing_Protocol := CONF_PNOO_DOUBLE_CORNER_BUFFER;
 
   --Relevant for Buffer

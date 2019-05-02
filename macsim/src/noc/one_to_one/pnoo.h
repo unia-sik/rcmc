@@ -5,6 +5,7 @@
 #include "share.h"
 
 #define PNOO_ENABLE_CONGESTION_CONTROL true
+//#define PNOO_ENABLE_CONGESTION_CONTROL false
 #define PNOO_ENABLE_FLOW_CONTROL true
 #define PNOO_FLOW_CONTROL_SIZE (conf_noc_width + 1)
 

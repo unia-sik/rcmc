@@ -12,18 +12,17 @@ int main(int argc, char *argv[]) {
   if (cid == 0) {
     pimp2_send_flit(1, 456);
   } else if (cid == 1) {
+    fgmp_send_ready(0); 
+        // one-to-one requires ready before sending,
+        // for other routers it is a nop
+
     // Probe until data is available.
     while (pimp2_probe(0) == 0) {
 
     }
 
     flit_t data = pimp2_recv_flit(0);
-    if (data != 456) {
-      test_result(false);
-    }
+    Debug(data == 456 ? 'k' : 'F');
   }
-
-  test_result(true);
-
   return 0;
 }

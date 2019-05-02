@@ -143,7 +143,7 @@ static inline long fgmp_recv_empty()
     long flag;
     asm volatile (
         "li %0, 0\n\t"
-        ".insn sb 0x7b, 3, x0, x0, 1f\n\t" // bre 1f
+        ".insn sb 0x7b, 3, x0, x0, 1f\n\t" // brne 1f
         "li %0, 1\n\t"
         "1:\n\t"
         : "=r" (flag));

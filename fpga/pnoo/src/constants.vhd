@@ -18,7 +18,17 @@ package constants is
   constant Corner_Buffer_Size : natural := 8;
 
   --Routing
-  type Routing_Protocol is (CONF_PNOO, CONF_PNOO_DOUBLE_CORNER_BUFFER, CONF_PNOO_SORT, CONF_PNOO_EMPTY, CONF_PNOO_NO_RDY, CONF_PNOO_SRR, CONF_PNOO_DRR, CONF_PNOO_CG, CONF_PNAA, CONF_PNOA);
+  type Routing_Protocol is (
+    CONF_PNOO,
+    CONF_PNOO_DOUBLE_CORNER_BUFFER,
+    CONF_PNOO_SORT,
+    CONF_PNOO_EMPTY,
+    CONF_PNOO_NO_RDY,
+    CONF_PNOO_SRR,
+    CONF_PNOO_DRR,
+    CONF_PNOO_CG,
+    CONF_PNAA,
+    CONF_PNOA);
   constant conf_routing : Routing_Protocol := CONF_PNOO_DOUBLE_CORNER_BUFFER;
   
   --Relevant for Buffer

@@ -2,8 +2,8 @@
 # They are special, because the FGPA has many restrictions (RV64I, small memory, slow, ...)
 
 ARCH=rv64i
-#ADD_CFLAGS=-DRCMC_MPILIB_pnoo
-#ADD_LDFLAGS=-lmpi_pnoo
+#ADD_CFLAGS=-DRCMC_MPI_FLOWCONTROL
+#ADD_LDFLAGS=-lmpi
 
 include $(dir $(abspath $(lastword $(MAKEFILE_LIST))))../../sw/lib/arch/arch_dependent.mk
 # does set $(RCMC_ROOT)
@@ -55,36 +55,36 @@ $(DIR_BUILD)rv64ui_%.$(ARCH).elf: $(DIR_RISCVTESTS)rv64ui/%.S
 	$(CC) -T$(DIR_RISCVTESTS)link.ld -nostdlib -o $@ $^ -I$(DIR_RISCVTESTS) -I$(DIR_RISCVTESTS)macros/scalar
 
 $(DIR_BUILD)seq_%.$(ARCH).elf: $(DIR_SEQ)%.c
-	$(CC) -DRCMC_MPILIB_pnoo $(CFLAGS) -O2 -o $@ $^ -lmpi_pnoo $(LDFLAGS)
+	$(CC) -DRCMC_MPI_FLOWCONTROL $(CFLAGS) -O2 -o $@ $^ -lmpi $(LDFLAGS)
 
 $(DIR_BUILD)4x4_%.$(ARCH).elf: $(DIR_4X4)%.c
-	$(CC) -DRCMC_MPILIB_pnoo $(CFLAGS) -O2 -o $@ $^ -lmpi_pnoo $(LDFLAGS)
+	$(CC) -DRCMC_MPI_FLOWCONTROL $(CFLAGS) -O2 -o $@ $^ -lmpi $(LDFLAGS)
 
 $(DIR_BUILD)mpi_%.$(ARCH).elf: $(DIR_MPI)%.c
-	$(CC) -DRCMC_MPILIB_pnoo $(CFLAGS) -O2 -o $@ $^ -lmpi_pnoo $(LDFLAGS)
+	$(CC) -DRCMC_MPI_FLOWCONTROL $(CFLAGS) -O2 -o $@ $^ -lmpi $(LDFLAGS)
 
 $(DIR_BUILD)fgmp_%.$(ARCH).elf: $(DIR_FGMP)%.c
-	$(CC) -DRCMC_MPILIB_pnoo $(CFLAGS) -O2 -o $@ $^ -lmpi_pnoo $(LDFLAGS)
+	$(CC) -DRCMC_MPI_FLOWCONTROL $(CFLAGS) -O2 -o $@ $^ -lmpi $(LDFLAGS)
 
 $(DIR_BUILD)pnoo_%.$(ARCH).elf: $(DIR_PNOO)%.c
-	$(CC) -DRCMC_MPILIB_pnoo $(CFLAGS) -O2 -o $@ $^ -lmpi_pnoo $(LDFLAGS)
+	$(CC) -DRCMC_MPI_FLOWCONTROL $(CFLAGS) -O2 -o $@ $^ -lmpi $(LDFLAGS)
 
 $(DIR_BUILD)pnoompi_%.$(ARCH).elf: $(DIR_PNOOMPI)%.c
-	$(CC) -DRCMC_MPILIB_pnoo $(CFLAGS) -O2 -o $@ $^ -lmpi_pnoo $(LDFLAGS)
+	$(CC) -DRCMC_MPI_FLOWCONTROL $(CFLAGS) -O2 -o $@ $^ -lmpi $(LDFLAGS)
 
 # -------
 
 $(DIR_BUILD)bench_ocean.$(ARCH).elf: $(RCMC_ROOT)sw/benchmarks/src/ocean.c
-	$(CC) -DRCMC_MPILIB_pnoo $(CFLAGS) -O2 -g -o $@ $^ -DPAROP_IMPL_MPI -DDEFAULT_LOG2_N=3 \
-	  -I$(RCMC_ROOT)sw/benchmarks/include -lmpi_pnoo $(LDFLAGS)
+	$(CC) -DRCMC_MPI_FLOWCONTROL $(CFLAGS) -O2 -g -o $@ $^ -DPAROP_IMPL_MPI -DDEFAULT_LOG2_N=3 \
+	  -I$(RCMC_ROOT)sw/benchmarks/include -lmpi $(LDFLAGS)
 
 $(DIR_BUILD)bench_cg.$(ARCH).elf: $(RCMC_ROOT)sw/benchmarks/src/cg.c
-	$(CC) -DRCMC_MPILIB_pnoo $(CFLAGS) -O2 -g -o $@ $^ -DPAROP_IMPL_MPI -DDEFAULT_CLASS=0 \
-	  -I$(RCMC_ROOT)sw/benchmarks/include -lmpi_pnoo $(LDFLAGS)
+	$(CC) -DRCMC_MPI_FLOWCONTROL $(CFLAGS) -O2 -g -o $@ $^ -DPAROP_IMPL_MPI -DDEFAULT_CLASS=0 \
+	  -I$(RCMC_ROOT)sw/benchmarks/include -lmpi $(LDFLAGS)
 
 $(DIR_BUILD)bench_bitonic_sort.$(ARCH).elf: $(RCMC_ROOT)sw/benchmarks/src/bitonic_sort.c
-	$(CC) -DRCMC_MPILIB_pnoo $(CFLAGS) -O2 -g -o $@ $^ -DPAROP_IMPL_MPI -DDEFAULT_PROBLEM_SIZE=0 \
-	  -I$(RCMC_ROOT)sw/benchmarks/include -lmpi_pnoo $(LDFLAGS)
+	$(CC) -DRCMC_MPI_FLOWCONTROL $(CFLAGS) -O2 -g -o $@ $^ -DPAROP_IMPL_MPI -DDEFAULT_PROBLEM_SIZE=0 \
+	  -I$(RCMC_ROOT)sw/benchmarks/include -lmpi $(LDFLAGS)
 
 
 
