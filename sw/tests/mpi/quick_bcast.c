@@ -1,11 +1,13 @@
 #include "mpi.h"
 
-int main() {    
+int main()
+{
+    int rank;
     MPI_Init(0, 0);
-        
-    int data[128];    
-    
-    if (MPI_COMM_WORLD->rank == 0) {
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+    int data[128];
+    if (rank == 0) {
         for (int i = 0; i < 128; i++) {
             data[i] = i;
         }

@@ -16,7 +16,7 @@ include $(RCMC_ROOT)config_default.mk
 
 ARCH_PATH=$(RCMC_ROOT)sw/lib/arch/$(ARCH)
 #LDFLAGS = -L$(ARCH_PATH)/lib -nostdlib -lmpi_$(MPILIB) -lc -lm -lgcc -lcopper
-LDFLAGS = -L$(ARCH_PATH)/lib -nostdlib -lc -lm -lgcc -lcopper
+LDFLAGS = -L$(ARCH_PATH)/lib -nostdlib -lmpi -lc -lm -lgcc -lcopper
 
 ifeq ($(ARCH),armv3)
   CC=$(CC_ARM)
@@ -27,8 +27,8 @@ ifeq ($(ARCH),armv6m)
     CFLAGS=-mcpu=cortex-m0 -mthumb -DARMV6M
 else
 ifeq ($(ARCH),riscv)
-      CC=$(CC_RV64IMFD)
-      CFLAGS=-march=rv64imfd -mno-fdiv
+      CC=$(CC_RV64IMAFD)
+      CFLAGS=-march=rv64imafd -mno-fdiv
 else
 ifeq ($(ARCH),rv64i)
         CC=$(CC_RV64I)

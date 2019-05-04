@@ -1,9 +1,11 @@
 #include "mpi.h"
 
+int max_rank;
+
 int sum_to_max() {
     int result = 0;
     
-    for (int i = 0; i < MPI_COMM_WORLD->size; i++) {
+    for (int i = 0; i < max_rank; i++) {
         result += i;
     }
     
@@ -11,10 +13,14 @@ int sum_to_max() {
 }
 
 
-int main() {
+int main()
+{
+    int rank;
     MPI_Init(0, 0);
+    MPI_Comm_size(MPI_COMM_WORLD, &max_rank);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     
-    uint64_t data = MPI_COMM_WORLD->rank;
+    uint64_t data = rank;
     
     int64_t min = 0;
     int64_t max = 0;
@@ -34,7 +40,7 @@ int main() {
 //     MPI_Barrier(MPI_COMM_WORLD);
 //     MPI_Reduce(&data, &sum, 1, MPI_INT64_T, MPI_SUM, 0, MPI_COMM_WORLD);
     
-    if (MPI_COMM_WORLD->rank == 0) {
+    if (rank == 0) {
         if (min != 0) {
 //             || max != MPI_COMM_WORLD->size - 1 ){
             

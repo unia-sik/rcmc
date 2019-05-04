@@ -109,7 +109,7 @@ int MPI_Gatherv(const void* sbuf, int scount, MPI_Datatype stype, void* rbuf,
         MPI_Comm comm);
 int MPI_Allgather(const void* send_buf, int send_count, MPI_Datatype send_datatype,
         void* receive_buf, int receive_count, MPI_Datatype receive_datatype,
-        MPI_Comm comm); // not yet implemented, only to avoid warnings
+        MPI_Comm comm);
 int MPI_Scatter(const void* send_buf, int send_count, MPI_Datatype send_datatype,
         void* receive_buf, int receive_count, MPI_Datatype receive_datatype,
         int root, MPI_Comm comm);
@@ -170,6 +170,7 @@ mpi_communicator_t MPI_New_Comm(
 // TODO: not implemented yet
 static inline int MPI_Comm_group(MPI_Comm comm, MPI_Group *group)
 {
+    *group = 0;
     return MPI_SUCCESS;
 }
 

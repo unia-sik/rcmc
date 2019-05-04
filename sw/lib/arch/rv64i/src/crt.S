@@ -64,5 +64,24 @@ _exit:
         csrw    0x780, 1
 2:      j       2b
 
-3:	.word __bss_start__
-4:	.word __bss_end__
+3:      .word __bss_start__
+4:      .word __bss_end__
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

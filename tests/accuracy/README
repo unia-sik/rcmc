@@ -1,6 +1,28 @@
 Check the cycle-by-cycle accuracy of MacSim and VHDL model
 
-Usage:
+First the binaries for a specific architecture must be build using
+
+    make -f <script>.mk clean all
+
+Available build scripts are:
+
+    pnoo.mk:    RV64I, one-to-one with implicit flow control
+
+The binaries are put into build/. The sources are from rcmc/sw/tests/ and
+rcmc/sw/benchmarks/.
+
+To compare all compiled binaries use
+
+    ./cmp_multiple.sh <core name> <noc width> <workdir> <RISC-V ELF files ...>"
+
+core name: directory within /rcmc/fpga with the VHDL processor model
+noc witdh: n for a NoC with n x n nodes
+workdir:   a directory name to allow parallel execution
+
+
+
+
+
 
 make
 -------------------

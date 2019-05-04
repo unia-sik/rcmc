@@ -29,7 +29,7 @@ int main(int argc,char *argv[])
     int recvcounts[max_rank];
     int displs[max_rank];
 
-    for (int i = 0; i <max_rank; i++) {
+    for (i = 0; i <max_rank; i++) {
         recvcounts[i] = 1;
         displs[i] = i * 8 * 2;
     }

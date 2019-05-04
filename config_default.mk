@@ -8,9 +8,9 @@ RCMC_ROOT=$(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 # ARM compiler
 CC_ARM=arm-none-eabi-gcc
 
-# RISC-V compiler with ISA rv64imfd (MacSim)
-CC_RV64IMFD=$(RCMC_ROOT)tools/rv64imfd/bin/riscv64-unknown-elf-gcc
-#CC_RV64IMFD=riscv64-unknown-elf-gcc
+# RISC-V compiler with ISA rv64imafd (MacSim)
+CC_RV64IMAFD=$(RCMC_ROOT)tools/rv64imafd/bin/riscv64-unknown-elf-gcc
+#CC_RV64IMAFD=riscv64-unknown-elf-gcc
 
 # RISC-V compiler with ISA rv64i (FPGA)
 CC_RV64I=$(RCMC_ROOT)tools/rv64i/bin/riscv64-unknown-elf-gcc

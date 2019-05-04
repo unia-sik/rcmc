@@ -143,6 +143,25 @@ do
             done
             ;;
 
+        mpi-fc) # message passing interface with one-to-one flow control
+             # running with 2x2 cores and checking all outpute
+            make ADD_CFLAGS=-DRCMC_MPI_FLOWCONTROL \
+                -C ${RCMC_ROOT}/sw/tests/mpi/ -f ../../all_single_c_files.mk clean all
+            for ELF in ${RCMC_ROOT}/sw/tests/mpi/build/*.${ARCH}.elf
+            do
+                NAME=`basename ${ELF} .${ARCH}.elf`
+                ${SIMULATOR} -A${ARCH} -N4 -a${ELF} -Rpnoo -c0 -mcoreout.0.tmp \
+                    -c1 -mcoreout.1.tmp -c2 -mcoreout.2.tmp -c3 -mcoreout.3.tmp \
+                    ${OPTIONS} -g -q > simout.tmp
+                for CORE in 0 1 2 3
+                do
+                    diff mpi/${NAME}.${CORE}.check coreout.${CORE}.tmp \
+                      || error "${NAME}: wrong output on core $CORE "
+                done
+                passed ${NAME}
+            done
+            ;;
+
         fgmp) # fine grained message passing
               # running with 8x8 cores and checking output of core 0
             make --silent -C ${RCMC_ROOT}/sw/tests/fgmp/ clean all

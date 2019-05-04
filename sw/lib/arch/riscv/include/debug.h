@@ -29,8 +29,8 @@ static inline void Debug(char ch)
 
 static inline void delay(long time)
 {
-    time += rdcycle();
-    while (time<rdcycle()) {}
+    long start = rdcycle();
+    while (rdcycle()-start < time) {}
 }
 
 

@@ -25,7 +25,7 @@ int main(int argc,char *argv[])
 
     if (max_rank > MAX_RANK) report('M'); // too many nodes
 
-    uint64_t data[MPI_COMM_WORLD->size];
+    uint64_t data[max_rank];
 
     for (i=0; i<max_rank; i++) data[i] = rank;
 

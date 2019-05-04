@@ -4,7 +4,8 @@
 
 PREFIX=$(pwd)/../rv64imafd
 #COMMIT=1a74ccbe # tested commit as of 2017-08-26
-COMMIT=d61f516a # tested commit as of 2017-11-08
+#COMMIT=d61f516a # tested commit as of 2017-11-08
+COMMIT=afcc8bc
 ARCH=rv64imafd
 
 

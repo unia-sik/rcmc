@@ -6,8 +6,8 @@ LIB_PLASTIC = ../lib/libplastic.a
 BUILD_DIR = build/
 
 C_FILES = $(wildcard *.c)
-O_FILES = $(C_FILES:%.c=$(BUILD_DIR)%.o)
-
+S_FILES = $(filter-out crt.S, $(wildcard *.S))
+O_FILES = $(C_FILES:%.c=$(BUILD_DIR)%.o) $(S_FILES:%.S=$(BUILD_DIR)%.o)
 
 .PHONY: all
 all: $(BUILD_DIR) $(LIB_COPPER) $(LIB_PLASTIC)
@@ -21,6 +21,9 @@ $(BUILD_DIR):
 	mkdir $(BUILD_DIR)
 
 $(BUILD_DIR)%.o: %.c
+	$(CC) $(CFLAGS) -g -O2 -Wall -c -o $@ $^
+
+$(BUILD_DIR)%.o: %.S
 	$(CC) $(CFLAGS) -g -O2 -Wall -c -o $@ $^
 
 $(BUILD_DIR)%.copper.o: %.S

@@ -1,22 +1,26 @@
 #include "mpi.h"
 
-int main() {    
-    MPI_Init(0, 0);
-        
+int main(int argc,char *argv[])
+{
+    int max_rank;
+    int rank;
+    int i;
     uint64_t A[128];
     uint64_t B[128];
-    
-    for (int i = 0; i < 128; i++) {
-        A[i] = MPI_COMM_WORLD->rank;
+
+    MPI_Init(&argc, &argv);
+    MPI_Comm_size(MPI_COMM_WORLD, &max_rank);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+    for (i = 0; i < 128; i++) {
+        A[i] = rank;
     }
-    
-    
-    int src = MPI_COMM_WORLD->size / 3;
+    int src = max_rank / 3;
     int dest = 0;
-    
-    if (MPI_COMM_WORLD->rank == src) {
+
+    if (rank == src) {
        MPI_Send(A, 128, MPI_INT64_T, dest, 0, MPI_COMM_WORLD)   ;
-    } else if (MPI_COMM_WORLD->rank == dest) {
+    } else if (rank == dest) {
         MPI_Status status;
         MPI_Recv(B, 128, MPI_INT64_T, src, 0, MPI_COMM_WORLD, &status);
         int cnt = 0;

@@ -82,13 +82,13 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    MPI_Comm subComm;
-    createSubCommunicator( numParticipants, participants, &subComm);
-    if (subComm != MPI_COMM_NULL) {
+//    MPI_Comm subComm;
+//    createSubCommunicator( numParticipants, participants, &subComm);
+//    if (subComm != MPI_COMM_NULL) {
         MPI_Gatherv(satellite, SAT_SIZE, MPI_INT,
-            central, cenSize, displs, MPI_INT, 0, subComm);
-        MPI_Comm_free(&subComm);
-    }
+            central, cenSize, displs, MPI_INT, 0, MPI_COMM_WORLD);
+//        MPI_Comm_free(&subComm);
+//    }
 
     if (my_rank == 0) {
         printf("Results:\n");
